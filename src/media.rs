@@ -1,9 +1,9 @@
 #[derive(Clone, Copy)]
 pub struct MediaSettings {
     pub media_type: MediaType,
-    pub width_dots: usize,
-    pub width_mm: usize,
-    pub left_margin: usize,
+    pub width_dots: u32,
+    pub width_mm: u8,
+    pub left_margin: u32,
     pub color: bool,
 }
 
@@ -27,7 +27,10 @@ impl MediaSettings {
                 color: true,
             },
             Media::D24 => Self {
-                media_type: MediaType::DieCut { length_dots: 236, length_mm: 24 },
+                media_type: MediaType::DieCut {
+                    length_dots: 236,
+                    length_mm: 24,
+                },
                 width_dots: 236,
                 width_mm: 24,
                 left_margin: 442,
@@ -41,7 +44,7 @@ impl MediaSettings {
 #[derive(Clone, Copy)]
 pub enum MediaType {
     Continuous,
-    DieCut { length_dots: usize, length_mm: usize },
+    DieCut { length_dots: u32, length_mm: u8 },
 }
 
 pub enum Media {

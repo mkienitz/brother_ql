@@ -9,50 +9,47 @@ use crate::{
     media::{MediaSettings, MediaType},
 };
 
+pub type RasterLayer = Vec<[u8; 90]>;
+
 pub enum RasterImage {
     Monochrome {
-        black_channel: RasterLayer,
+        black_layer: RasterLayer,
     },
     TwoColor {
-        black_channel: RasterLayer,
-        red_channel: RasterLayer,
+        black_layer: RasterLayer,
+        red_layer: RasterLayer,
     },
 }
-pub struct RasterLayer {
-    pub data: Vec<[u8; 90]>,
-}
 
-impl From<GrayImage> for RasterLayer {
-    fn from(value: GrayImage) -> Self {
-        let mut res: Vec<[u8; 90]> = value
-            .pixels()
-            .chunks(720)
-            .into_iter()
-            .map(|line| {
-                line.chunks(8)
-                    .into_iter()
-                    .map(|chunk| {
-                        let mut res: u8 = 0;
-                        chunk.enumerate().for_each(|(i, px)| {
-                            if px.0[0] == 0 {
-                                res |= 1 << (7 - i);
-                            }
-                        });
-                        res
-                    })
-                    .collect_vec()
-                    .try_into()
-                    .unwrap()
-            })
-            .collect_vec();
-        res.reverse();
-        Self { data: res }
-    }
+fn mask_to_raster_layer(mask: GrayImage) -> RasterLayer {
+    let mut res: Vec<[u8; 90]> = mask
+        .pixels()
+        .chunks(720)
+        .into_iter()
+        .map(|line| {
+            line.chunks(8)
+                .into_iter()
+                .map(|chunk| {
+                    let mut res: u8 = 0;
+                    chunk.enumerate().for_each(|(i, px)| {
+                        if px.0[0] == 0 {
+                            res |= 1 << (7 - i);
+                        }
+                    });
+                    res
+                })
+                .collect_vec()
+                .try_into()
+                .unwrap()
+        })
+        .collect_vec();
+    res.reverse();
+    res
 }
 
 fn create_mask(
     img: &DynamicImage,
-    media_settings: &MediaSettings,
+    left_margin: u32,
     filter: fn(r: u8, g: u8, b: u8) -> bool,
 ) -> GrayImage {
     let (w, h) = img.dimensions();
@@ -71,9 +68,8 @@ fn create_mask(
     let mut mask = imageops::grayscale(&filtered);
     image::imageops::dither(&mut mask, &BiLevel);
     let extended = ImageBuffer::from_fn(720, h, |x, y| {
-        let lm = media_settings.left_margin as u32;
-        if (lm..(lm + w)).contains(&x) {
-            *mask.get_pixel(x - media_settings.left_margin as u32, y)
+        if (left_margin..(left_margin + w)).contains(&x) {
+            *mask.get_pixel(x - left_margin, y)
         } else {
             [255].into()
         }
@@ -83,8 +79,7 @@ fn create_mask(
 
 impl RasterImage {
     pub fn new(img: DynamicImage, media_settings: &MediaSettings) -> Result<Self, BQLError> {
-        let (w, h) = img.dimensions();
-        let (width, height) = (w as usize, h as usize);
+        let (width, height) = img.dimensions();
         // Always check width, for die-cut labels, also check height
         if media_settings.width_dots != width {
             return Err(BQLError::DimensionMismatch);
@@ -95,21 +90,25 @@ impl RasterImage {
             }
         }
         Ok(if media_settings.color {
-            let red = create_mask(&img, media_settings, |r, g, b| r > 100 && r > b && r > g);
-            let _ = red.save("red.png");
-            let black = create_mask(&img, media_settings, |r, g, b| r == g && r == b && r < 200);
-            let _ = black.save("black.png");
             Self::TwoColor {
-                black_channel: black.into(),
-                red_channel: red.into(),
+                black_layer: mask_to_raster_layer(create_mask(
+                    &img,
+                    media_settings.left_margin,
+                    |r, g, b| r == g && r == b && r < 200,
+                )),
+                red_layer: mask_to_raster_layer(create_mask(
+                    &img,
+                    media_settings.left_margin,
+                    |r, g, b| r > 100 && r > b && r > g,
+                )),
             }
         } else {
-            let bw = create_mask(&img, media_settings, |r, g, b| {
-                !(r == b && r == g && r == 255)
-            });
-            let _ = bw.save("bw.png");
             Self::Monochrome {
-                black_channel: bw.into(),
+                black_layer: mask_to_raster_layer(create_mask(
+                    &img,
+                    media_settings.left_margin,
+                    |r, g, b| !(r == b && r == g && r == 255),
+                )),
             }
         })
     }

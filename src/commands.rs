@@ -147,7 +147,7 @@ impl From<RasterCommand> for Vec<u8> {
                 // Media Type and Media Length are always valid
                 let mut valid_flag = 0x06;
                 let media_type;
-                let media_width = media_settings.width_mm as u8;
+                let media_width = media_settings.width_mm;
                 let mut media_length = 0x00;
                 match media_settings.media_type {
                     MediaType::Continuous => {
@@ -155,7 +155,7 @@ impl From<RasterCommand> for Vec<u8> {
                     }
                     MediaType::DieCut { length_mm, .. } => {
                         media_type = 0x0b;
-                        media_length = length_mm as u8;
+                        media_length = length_mm;
                         valid_flag |= 0x8;
                     }
                 };

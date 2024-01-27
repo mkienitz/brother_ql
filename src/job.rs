@@ -41,7 +41,7 @@ impl PrintJob {
             commands.add(SwitchDynamicCommandMode {
                 command_mode: DynamicCommandMode::Raster,
             });
-            // commands.add(SwitchAutomaticStatusNotificationMode { notify: true });
+            commands.add(SwitchAutomaticStatusNotificationMode { notify: false });
             commands.add(PrintInformation {
                 media_settings,
                 quality_priority: self.quality_priority,
@@ -70,20 +70,17 @@ impl PrintJob {
                 tiff_compression: self.compressed,
             });
             match &raster_image {
-                RasterImage::Monochrome { black_channel } => {
-                    black_channel.data.iter().for_each(|line| {
-                        commands.add(RasterGraphicsTransfer {
-                            data: line.to_vec(),
-                        })
+                RasterImage::Monochrome { black_layer } => black_layer.iter().for_each(|line| {
+                    commands.add(RasterGraphicsTransfer {
+                        data: line.to_vec(),
                     })
-                }
+                }),
                 RasterImage::TwoColor {
-                    black_channel,
-                    red_channel,
-                } => black_channel
-                    .data
+                    black_layer,
+                    red_layer,
+                } => black_layer
                     .iter()
-                    .zip(red_channel.data.iter())
+                    .zip(red_layer.iter())
                     .for_each(|(black_line, red_line)| {
                         commands.add(TwoColorRasterGraphicsTransfer {
                             data: black_line.to_vec(),
@@ -96,9 +93,9 @@ impl PrintJob {
                     }),
             };
             if page_no == self.no_pages - 1 {
-                commands.add(PrintWithFeed {})
+                commands.add(PrintWithFeed)
             } else {
-                commands.add(Print {})
+                commands.add(Print)
             };
         }
         Ok(commands.build())
