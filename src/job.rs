@@ -3,7 +3,7 @@ use std::error::Error;
 use image::DynamicImage;
 
 use crate::{
-    commands::*,
+    commands::{ColorPower, CommandBuilder, DynamicCommandMode, RasterCommand},
     image::RasterImage,
     media::{Media, MediaSettings, MediaType},
 };
