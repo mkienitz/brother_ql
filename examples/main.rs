@@ -8,7 +8,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     let job = PrintJob {
         no_pages: 1,
         image: img,
-        media: Media::C62,
+        media: Media::C62R,
         high_dpi: false,
         compressed: false,
         quality_priority: true,
