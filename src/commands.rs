@@ -1,17 +1,17 @@
 use crate::media::{MediaSettings, MediaType};
 
-pub enum DynamicCommandMode {
-    EscP,
+pub(crate) enum DynamicCommandMode {
+    // EscP,
     Raster,
-    PTouchTemplate,
+    // PTouchTemplate,
 }
 
-pub enum ColorPower {
+pub(crate) enum ColorPower {
     LowEnergy,
     HighEnergy,
 }
 
-pub enum RasterCommand {
+pub(crate) enum RasterCommand {
     Initialize,
     Invalidate,
     SpecifyMarginAmount {
@@ -30,7 +30,7 @@ pub enum RasterCommand {
         data: Vec<u8>,
         color_power: ColorPower,
     },
-    ZeroRasterGraphics,
+    // ZeroRasterGraphics,
     Print,
     PrintWithFeed,
     SelectCompressionMode {
@@ -73,9 +73,9 @@ impl From<RasterCommand> for Vec<u8> {
             SwitchDynamicCommandMode { command_mode } => {
                 use DynamicCommandMode::*;
                 let m = match command_mode {
-                    EscP => 0x00,
+                    // EscP => 0x00,
                     Raster => 0x01,
-                    PTouchTemplate => 0x03,
+                    // PTouchTemplate => 0x03,
                 };
                 vec![0x1b, 0x69, 0x61, m]
             }
@@ -100,9 +100,9 @@ impl From<RasterCommand> for Vec<u8> {
                 res.append(&mut data);
                 res
             }
-            ZeroRasterGraphics => {
-                vec![0x5a]
-            }
+            // ZeroRasterGraphics => {
+            //     vec![0x5a]
+            // }
             Print => {
                 vec![0x0c]
             }
@@ -188,7 +188,7 @@ impl From<RasterCommand> for Vec<u8> {
 }
 
 #[derive(Default)]
-pub struct CommandBuilder {
+pub(crate) struct CommandBuilder {
     commands: Vec<Vec<u8>>,
 }
 

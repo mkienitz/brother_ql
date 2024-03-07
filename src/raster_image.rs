@@ -9,9 +9,9 @@ use crate::{
     media::{MediaSettings, MediaType},
 };
 
-pub type RasterLayer = Vec<[u8; 90]>;
+type RasterLayer = Vec<[u8; 90]>;
 
-pub enum RasterImage {
+pub(crate) enum RasterImage {
     Monochrome {
         black_layer: RasterLayer,
     },
@@ -19,6 +19,43 @@ pub enum RasterImage {
         black_layer: RasterLayer,
         red_layer: RasterLayer,
     },
+}
+
+impl RasterImage {
+    pub(crate) fn new(img: DynamicImage, media_settings: &MediaSettings) -> Result<Self, BQLError> {
+        let (width, height) = img.dimensions();
+        // Always check width, for die-cut labels, also check height
+        if media_settings.width_dots != width {
+            return Err(BQLError::DimensionMismatch);
+        }
+        if let MediaType::DieCut { length_dots, .. } = media_settings.media_type {
+            if length_dots != height {
+                return Err(BQLError::DimensionMismatch);
+            }
+        }
+        Ok(if media_settings.color {
+            Self::TwoColor {
+                black_layer: mask_to_raster_layer(create_mask(
+                    &img,
+                    media_settings.left_margin,
+                    |r, g, b| r == g && r == b && r < 200,
+                )),
+                red_layer: mask_to_raster_layer(create_mask(
+                    &img,
+                    media_settings.left_margin,
+                    |r, g, b| r > 100 && r > b && r > g,
+                )),
+            }
+        } else {
+            Self::Monochrome {
+                black_layer: mask_to_raster_layer(create_mask(
+                    &img,
+                    media_settings.left_margin,
+                    |r, g, b| !(r == b && r == g && r == 255),
+                )),
+            }
+        })
+    }
 }
 
 fn mask_to_raster_layer(mask: GrayImage) -> RasterLayer {
@@ -30,7 +67,7 @@ fn mask_to_raster_layer(mask: GrayImage) -> RasterLayer {
             line.chunks(8)
                 .into_iter()
                 .map(|chunk| {
-                    let mut res: u8 = 0;
+                    let mut res = 0;
                     chunk.enumerate().for_each(|(i, px)| {
                         if px.0[0] == 0 {
                             res |= 1 << (7 - i);
@@ -75,41 +112,4 @@ fn create_mask(
         }
     });
     extended
-}
-
-impl RasterImage {
-    pub fn new(img: DynamicImage, media_settings: &MediaSettings) -> Result<Self, BQLError> {
-        let (width, height) = img.dimensions();
-        // Always check width, for die-cut labels, also check height
-        if media_settings.width_dots != width {
-            return Err(BQLError::DimensionMismatch);
-        }
-        if let MediaType::DieCut { length_dots, .. } = media_settings.media_type {
-            if length_dots != height {
-                return Err(BQLError::DimensionMismatch);
-            }
-        }
-        Ok(if media_settings.color {
-            Self::TwoColor {
-                black_layer: mask_to_raster_layer(create_mask(
-                    &img,
-                    media_settings.left_margin,
-                    |r, g, b| r == g && r == b && r < 200,
-                )),
-                red_layer: mask_to_raster_layer(create_mask(
-                    &img,
-                    media_settings.left_margin,
-                    |r, g, b| r > 100 && r > b && r > g,
-                )),
-            }
-        } else {
-            Self::Monochrome {
-                black_layer: mask_to_raster_layer(create_mask(
-                    &img,
-                    media_settings.left_margin,
-                    |r, g, b| !(r == b && r == g && r == 255),
-                )),
-            }
-        })
-    }
 }

@@ -1,24 +1,27 @@
 {
-  description = "A devShell example";
-
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+    };
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
   };
 
   outputs = {
-    self,
     nixpkgs,
-    rust-overlay,
     flake-utils,
+    rust-overlay,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (
       system: let
-        overlays = [(import rust-overlay)];
         pkgs = import nixpkgs {
-          inherit system overlays;
+          inherit system;
+          overlays = [(import rust-overlay)];
         };
         rust-bin = pkgs.rust-bin.stable.latest.default.override {
           extensions = ["rust-src"];
@@ -26,12 +29,14 @@
       in {
         formatter = pkgs.alejandra;
         devShells.default = pkgs.mkShell {
-          buildInputs =
+          packages =
             [rust-bin]
             ++ (with pkgs; [
               nil
               rust-analyzer
               clippy
+              cargo-watch
+              cargo-modules
             ]);
           RUST_SRC_PATH = "${rust-bin}/lib/rustlib/src/rust/library";
         };
