@@ -78,14 +78,20 @@ impl PrintJob {
             commands.add(VariousMode {
                 auto_cut: self.cut_behaviour != CutBehavior::None,
             });
-            if let CutBehavior::CutEvery(n) = self.cut_behaviour {
-                commands.add(SpecifyPageNumber { cut_every: n });
+            match self.cut_behaviour {
+                CutBehavior::CutEvery(n) => {
+                    commands.add(SpecifyPageNumber { cut_every: n });
+                }
+                CutBehavior::CutEach => {
+                    commands.add(SpecifyPageNumber { cut_every: 1 });
+                }
+                _ => {}
             }
             commands.add(ExpandedMode {
                 two_color: media_settings.color,
                 cut_at_end: match self.cut_behaviour {
-                    CutBehavior::CutEvery(n) => self.no_pages % n as usize != 0,
                     CutBehavior::CutAtEnd => true,
+                    CutBehavior::CutEvery(n) => self.no_pages % n as usize != 0,
                     _ => false,
                 },
                 high_dpi: self.high_dpi,
