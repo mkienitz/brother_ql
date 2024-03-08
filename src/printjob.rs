@@ -25,7 +25,7 @@ pub enum CutBehavior {
 /// This struct defines the general settings for the generated print job.
 pub struct PrintJob {
     /// The amount of replicas to print
-    pub no_pages: usize,
+    pub no_pages: u8,
     /// The image to print. The required type is [DynamicImage] from the [image] crate.
     pub image: DynamicImage,
     /// The paper type to use for the print job
@@ -91,7 +91,7 @@ impl PrintJob {
                 two_color: media_settings.color,
                 cut_at_end: match self.cut_behaviour {
                     CutBehavior::CutAtEnd => true,
-                    CutBehavior::CutEvery(n) => self.no_pages % n as usize != 0,
+                    CutBehavior::CutEvery(n) => self.no_pages % n != 0,
                     _ => false,
                 },
                 high_dpi: self.high_dpi,
