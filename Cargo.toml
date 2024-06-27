@@ -1,6 +1,6 @@
 [package]
 name = "brother_ql"
-version = "1.0.3"
+version = "1.0.4"
 description = "Generate Brother QL Raster Command data from images"
 edition = "2021"
 license = "MIT"

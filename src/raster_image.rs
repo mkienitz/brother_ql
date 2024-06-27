@@ -104,9 +104,10 @@ fn create_mask(
         });
     let mut mask = imageops::grayscale(&filtered);
     image::imageops::dither(&mut mask, &BiLevel);
+    let right_margin = 720 - left_margin - w;
     let extended = ImageBuffer::from_fn(720, h, |x, y| {
-        if (left_margin..(left_margin + w)).contains(&x) {
-            *mask.get_pixel(x - left_margin, y)
+        if (right_margin..(right_margin + w)).contains(&x) {
+            *mask.get_pixel(x - right_margin, y)
         } else {
             [255].into()
         }
