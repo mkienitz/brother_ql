@@ -27,11 +27,18 @@
         pkgs,
         config,
         ...
-      }: {
+      }: let
+        projectName = crateName;
+        crateName = "brother_ql";
+        crateOutput = config.nci.outputs.${crateName};
+      in {
         formatter = pkgs.alejandra;
-
-        devshells.default = {
-          packages =
+        nci = {
+          projects.${projectName}.path = ./.;
+          crates.${crateName} = {};
+        };
+        devShells.default = crateOutput.devShell.overrideAttrs (old: {
+          nativeBuildInputs =
             (with pkgs; [
               nil
               rust-analyzer
@@ -39,8 +46,9 @@
               cargo-modules
               wasm-pack
             ])
-            ++ [config.nci.toolchains.shell];
-        };
+            ++ old.nativeBuildInputs;
+        });
+        packages.default = crateOutput.packages.release;
       };
     };
 }
