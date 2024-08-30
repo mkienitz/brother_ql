@@ -3,14 +3,14 @@
 //!
 //! * It is still very much work-in-progress so some bugs might still exist.
 //! * Currently, only the 820NWB printer is supported but other printers should be relatively easy to
-//! add - especially the 8xx sibling models.
+//!   add - especially the 8xx sibling models.
 //! * The two-color (red and black) printing mode is supported
 //! * The image is represented by [DynamicImage][image::DynamicImage] from the [image] crate
 //! * For details, check the [official Raster Command Reference](https://download.brother.com/welcome/docp100278/cv_ql800_eng_raster_101.pdf)
 //!
 //! Here is a small example on how to use it:
 //!
-//! ```
+//! ```no_run
 //! use std::{error::Error, fs::File, io::Write};
 //!
 //! use brother_ql::{
@@ -43,3 +43,6 @@ pub mod error;
 pub mod media;
 pub mod printjob;
 mod raster_image;
+
+#[cfg(feature = "wasm-bindgen")]
+pub mod wasm;

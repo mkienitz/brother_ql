@@ -2,3 +2,6 @@
 *.png
 *.bin
 *.pdf
+/result
+/pkg
+/examples/d24.rs

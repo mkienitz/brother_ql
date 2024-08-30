@@ -1,4 +1,7 @@
 //! Definitions for the available paper media types
+#[cfg(feature = "wasm-bindgen")]
+use wasm_bindgen::prelude::*;
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) struct MediaSettings {
     pub media_type: MediaType,
@@ -45,7 +48,6 @@ impl MediaSettings {
 /// * die-cut labels
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) enum MediaType {
-    //
     Continuous,
     DieCut { length_dots: u32, length_mm: u8 },
 }
@@ -54,6 +56,7 @@ pub(crate) enum MediaType {
 ///
 /// **Important note:**
 /// Currently, only [C62][Media::C62], [C62R][Media::C62R] and [D24][Media::D24] are supported.
+#[cfg_attr(feature = "wasm-bindgen", wasm_bindgen)]
 pub enum Media {
     /// Continous 12mm wide roll
     C12,

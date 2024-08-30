@@ -45,6 +45,7 @@
               cargo-watch
               cargo-modules
               wasm-pack
+              nodePackages.npm
             ])
             ++ old.nativeBuildInputs;
         });
