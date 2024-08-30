@@ -1,45 +1,46 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-    };
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    devshell.url = "github:numtide/devshell";
+    nci.url = "github:yusdacra/nix-cargo-integration";
   };
 
-  outputs = {
-    nixpkgs,
-    flake-utils,
-    rust-overlay,
-    ...
-  }:
-    flake-utils.lib.eachDefaultSystem (
-      system: let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [(import rust-overlay)];
-        };
-        rust-bin = pkgs.rust-bin.stable.latest.default.override {
-          extensions = ["rust-src"];
-        };
-      in {
+  outputs = inputs @ {flake-parts, ...}:
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      imports = [
+        inputs.devshell.flakeModule
+        inputs.nci.flakeModule
+      ];
+
+      flake = {};
+
+      systems = [
+        "x86_64-linux"
+        "x86_64-darwin"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
+
+      perSystem = {
+        system,
+        pkgs,
+        config,
+        ...
+      }: {
         formatter = pkgs.alejandra;
-        devShells.default = pkgs.mkShell {
+
+        devshells.default = {
           packages =
-            [rust-bin]
-            ++ (with pkgs; [
+            (with pkgs; [
               nil
               rust-analyzer
-              clippy
               cargo-watch
               cargo-modules
-            ]);
-          RUST_SRC_PATH = "${rust-bin}/lib/rustlib/src/rust/library";
+              wasm-pack
+            ])
+            ++ [config.nci.toolchains.shell];
         };
-      }
-    );
+      };
+    };
 }
