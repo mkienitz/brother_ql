@@ -43,6 +43,3 @@ pub mod error;
 pub mod media;
 pub mod printjob;
 mod raster_image;
-
-#[cfg(feature = "wasm-bindgen")]
-pub mod wasm;

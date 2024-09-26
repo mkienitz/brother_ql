@@ -44,27 +44,6 @@
               rust-analyzer
               cargo-watch
               cargo-modules
-              (wasm-pack.overrideAttrs (old: rec {
-                version = "0.13.0";
-                src = fetchFromGitHub {
-                  owner = "rustwasm";
-                  repo = "wasm-pack";
-                  rev = "refs/tags/v0.13.0";
-                  hash = "sha256-NEujk4ZPQ2xHWBCVjBCD7H6f58P4KrwCNoDHKa0d5JE=";
-                };
-                cargoDeps = old.cargoDeps.overrideAttrs (_: {
-                  inherit src;
-                  outputHash = "sha256-uB7rrBxVfP3alacWanDmXeilsQ6wQSouKGbgMXGko8g=";
-                });
-                nativeBuildInputs =
-                  [
-                    pkgs.pkg-config
-                    pkgs.cmake
-                  ]
-                  ++ old.nativeBuildInputs;
-                buildInputs = [pkgs.zstd] ++ old.buildInputs;
-              }))
-              nodePackages.npm
             ])
             ++ old.nativeBuildInputs;
         });

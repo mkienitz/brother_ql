@@ -1,6 +1,9 @@
 //! The core module for defining and compiling print data
 use image::DynamicImage;
 
+#[cfg(feature = "serde")]
+use serde::Deserialize;
+
 use crate::{
     commands::{ColorPower, CommandBuilder, DynamicCommandMode, RasterCommand},
     error::BQLError,
@@ -10,6 +13,7 @@ use crate::{
 
 /// This enum specifies the cutting behavior for the generated print job.
 #[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize))]
 pub enum CutBehavior {
     /// Don't cut at all
     None,

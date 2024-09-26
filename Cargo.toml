@@ -12,15 +12,11 @@ exclude = [
 	".envrc",
 ]
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 image = "0.25.2"
 itertools = { version = "0.13.0", features = ["use_alloc"] }
+serde = { version = "1.0.210", features = ["derive"], optional = true }
 thiserror = "1.0.56"
-wasm-bindgen = { version = "0.2.92", optional = true }
 
 [features]
-# default = ["wasm-bindgen"]
-wasm-bindgen = ["dep:wasm-bindgen"]
+serde = ["dep:serde"]
