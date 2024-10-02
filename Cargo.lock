@@ -98,7 +98,7 @@ checksum = "b81e1519b0d82120d2fd469d5bfb2919a9361c48b02d82d04befc1cdd2002452"
 
 [[package]]
 name = "brother_ql"
-version = "1.0.5"
+version = "1.0.6"
 dependencies = [
  "image",
  "itertools 0.13.0",
