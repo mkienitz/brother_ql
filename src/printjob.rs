@@ -27,6 +27,7 @@ pub enum CutBehavior {
 }
 
 /// This struct defines the general settings for the generated print job.
+#[derive(Clone, PartialEq, Debug)]
 pub struct PrintJob {
     /// The amount of replicas to print
     pub no_pages: u8,

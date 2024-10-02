@@ -57,6 +57,7 @@ pub(crate) enum MediaType {
 /// **Important note:**
 /// Currently, only [C62][Media::C62], [C62R][Media::C62R] and [D24][Media::D24] are supported.
 #[cfg_attr(feature = "serde", derive(Deserialize))]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Media {
     /// Continous 12mm wide roll
     C12,
