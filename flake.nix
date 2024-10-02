@@ -44,6 +44,7 @@
               rust-analyzer
               cargo-watch
               cargo-modules
+              cargo-release
             ])
             ++ old.nativeBuildInputs;
         });
