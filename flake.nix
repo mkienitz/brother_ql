@@ -1,19 +1,36 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    devshell = {
+      url = "github:numtide/devshell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-parts.url = "github:hercules-ci/flake-parts";
-    devshell.url = "github:numtide/devshell";
-    nci.url = "github:yusdacra/nix-cargo-integration";
+    nci = {
+      url = "github:yusdacra/nix-cargo-integration";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = inputs @ {flake-parts, ...}:
-    flake-parts.lib.mkFlake {inherit inputs;} {
+  outputs =
+    inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.devshell.flakeModule
         inputs.nci.flakeModule
+        inputs.pre-commit-hooks.flakeModule
+        inputs.treefmt-nix.flakeModule
       ];
 
-      flake = {};
+      flake = { };
 
       systems = [
         "x86_64-linux"
@@ -22,33 +39,50 @@
         "aarch64-darwin"
       ];
 
-      perSystem = {
-        system,
-        pkgs,
-        config,
-        ...
-      }: let
-        projectName = crateName;
-        crateName = "brother_ql";
-        crateOutput = config.nci.outputs.${crateName};
-      in {
-        formatter = pkgs.alejandra;
-        nci = {
-          projects.${projectName}.path = ./.;
-          crates.${crateName} = {};
+      perSystem =
+        {
+          pkgs,
+          config,
+          ...
+        }:
+        let
+          projectName = crateName;
+          crateName = "brother_ql";
+          crateOutput = config.nci.outputs.${crateName};
+        in
+        {
+          nci = {
+            projects.${projectName} = {
+              numtideDevshell = "default";
+              path = ./.;
+            };
+            crates.${crateName} = { };
+          };
+
+          devshells.default = {
+            packages = [
+              pkgs.nil
+              pkgs.rust-analyzer
+              pkgs.cargo-watch
+              pkgs.cargo-modules
+              pkgs.cargo-release
+            ];
+            devshell.startup.pre-commit.text = config.pre-commit.installationScript;
+          };
+
+          pre-commit.settings.hooks.treefmt.enable = true;
+
+          treefmt = {
+            projectRootFile = "flake.nix";
+            programs = {
+              deadnix.enable = true;
+              statix.enable = true;
+              nixfmt.enable = true;
+              rustfmt.enable = true;
+            };
+          };
+
+          packages.default = crateOutput.packages.release;
         };
-        devShells.default = crateOutput.devShell.overrideAttrs (old: {
-          nativeBuildInputs =
-            (with pkgs; [
-              nil
-              rust-analyzer
-              cargo-watch
-              cargo-modules
-              cargo-release
-            ])
-            ++ old.nativeBuildInputs;
-        });
-        packages.default = crateOutput.packages.release;
-      };
     };
 }
