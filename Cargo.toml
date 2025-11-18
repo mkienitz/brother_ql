@@ -14,9 +14,9 @@ exclude = [
 
 [dependencies]
 image = "0.25.2"
-itertools = { version = "0.13.0", features = ["use_alloc"] }
+itertools = { version = "0.14.0", features = ["use_alloc"] }
 serde = { version = "1.0.210", features = ["derive"], optional = true }
-thiserror = "1.0.56"
+thiserror = "2.0.17"
 
 [features]
 serde = ["dep:serde"]
