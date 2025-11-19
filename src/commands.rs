@@ -1,4 +1,7 @@
-use crate::media::{MediaSettings, MediaType};
+use crate::{
+    error::BQLError,
+    media::{LengthInfo, MediaSettings},
+};
 
 pub(crate) enum DynamicCommandMode {
     // EscP,
@@ -11,9 +14,30 @@ pub(crate) enum ColorPower {
     HighEnergy,
 }
 
+pub(crate) struct VariousModeSettings {
+    pub auto_cut: bool,
+}
+
+impl TryFrom<u8> for VariousModeSettings {
+    type Error = BQLError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        let ac = match value {
+            0x40 => Ok(true),
+            0x00 => Ok(false),
+            _ => Err(BQLError::MalformedStatus(
+                "various mode data has unused bits set".to_string(),
+            )),
+        }?;
+        Ok(VariousModeSettings { auto_cut: ac })
+    }
+}
+
 pub(crate) enum RasterCommand {
+    // Initialization Commands
     Initialize,
     Invalidate,
+    // Control Codes
     SpecifyMarginAmount {
         margin_size: u16,
     },
@@ -30,18 +54,13 @@ pub(crate) enum RasterCommand {
         data: Vec<u8>,
         color_power: ColorPower,
     },
-    // ZeroRasterGraphics,
-    Print,
-    PrintWithFeed,
     SelectCompressionMode {
         tiff_compression: bool,
     },
     SpecifyPageNumber {
         cut_every: u8,
     },
-    VariousMode {
-        auto_cut: bool,
-    },
+    VariousMode(VariousModeSettings),
     ExpandedMode {
         two_color: bool,
         cut_at_end: bool,
@@ -54,6 +73,9 @@ pub(crate) enum RasterCommand {
         no_lines: u32,
         first_page: bool,
     },
+    // Print Commands
+    Print,
+    PrintWithFeed,
 }
 
 impl From<RasterCommand> for Vec<u8> {
@@ -116,9 +138,13 @@ impl From<RasterCommand> for Vec<u8> {
             SpecifyPageNumber { cut_every } => {
                 vec![0x1b, 0x69, 0x41, cut_every]
             }
-            VariousMode { auto_cut } => {
-                let ac = if auto_cut { 0b1 << (7 - 1) } else { 0x00 };
-                vec![0x1b, 0x69, 0x4d, ac]
+            VariousMode(various_mode) => {
+                let vm = if various_mode.auto_cut {
+                    0b1 << (7 - 1)
+                } else {
+                    0x00
+                };
+                vec![0x1b, 0x69, 0x4d, vm]
             }
             ExpandedMode {
                 two_color,
@@ -146,19 +172,19 @@ impl From<RasterCommand> for Vec<u8> {
             } => {
                 // Media Type and Media Length are always valid
                 let mut valid_flag = 0x06;
-                let media_type;
                 let media_width = media_settings.width_mm;
                 let mut media_length = 0x00;
-                match media_settings.media_type {
-                    MediaType::Continuous => {
+                let media_type;
+                match media_settings.length_info {
+                    LengthInfo::Endless => {
                         media_type = 0x0a;
                     }
-                    MediaType::DieCut { length_mm, .. } => {
+                    LengthInfo::Fixed { length_mm, .. } => {
                         media_type = 0x0b;
                         media_length = length_mm;
                         valid_flag |= 0x8;
                     }
-                };
+                }
                 if quality_priority {
                     valid_flag |= 0x40;
                 }

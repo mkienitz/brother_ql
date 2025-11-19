@@ -1,12 +1,12 @@
 use image::{
-    imageops::{self, BiLevel},
     DynamicImage, GenericImageView, GrayImage, ImageBuffer, Rgb, RgbImage,
+    imageops::{self, BiLevel},
 };
 use itertools::Itertools;
 
 use crate::{
     error::BQLError,
-    media::{MediaSettings, MediaType},
+    media::{LengthInfo, MediaSettings},
 };
 
 type RasterLayer = Vec<[u8; 90]>;
@@ -28,7 +28,7 @@ impl RasterImage {
         if media_settings.width_dots != width {
             return Err(BQLError::DimensionMismatch);
         }
-        if let MediaType::DieCut { length_dots, .. } = media_settings.media_type {
+        if let LengthInfo::Fixed { length_dots, .. } = media_settings.length_info {
             if length_dots != height {
                 return Err(BQLError::DimensionMismatch);
             }

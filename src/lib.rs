@@ -43,3 +43,4 @@ pub mod error;
 pub mod media;
 pub mod printjob;
 mod raster_image;
+mod status;

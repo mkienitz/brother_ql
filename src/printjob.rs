@@ -5,9 +5,11 @@ use image::DynamicImage;
 use serde::Deserialize;
 
 use crate::{
-    commands::{ColorPower, CommandBuilder, DynamicCommandMode, RasterCommand},
+    commands::{
+        ColorPower, CommandBuilder, DynamicCommandMode, RasterCommand, VariousModeSettings,
+    },
     error::BQLError,
-    media::{Media, MediaSettings, MediaType},
+    media::{LengthInfo, Media, MediaSettings},
     raster_image::RasterImage,
 };
 
@@ -80,9 +82,9 @@ impl PrintJob {
                 no_lines: height,
                 first_page: page_no == 0,
             });
-            commands.add(VariousMode {
+            commands.add(VariousMode(VariousModeSettings {
                 auto_cut: self.cut_behaviour != CutBehavior::None,
-            });
+            }));
             match self.cut_behaviour {
                 CutBehavior::CutEvery(n) => {
                     commands.add(SpecifyPageNumber { cut_every: n });
@@ -96,15 +98,15 @@ impl PrintJob {
                 two_color: media_settings.color,
                 cut_at_end: match self.cut_behaviour {
                     CutBehavior::CutAtEnd => true,
-                    CutBehavior::CutEvery(n) => self.no_pages % n != 0,
+                    CutBehavior::CutEvery(n) => !self.no_pages.is_multiple_of(n),
                     _ => false,
                 },
                 high_dpi: self.high_dpi,
             });
             commands.add(SpecifyMarginAmount {
-                margin_size: match media_settings.media_type {
-                    MediaType::Continuous => 35,
-                    MediaType::DieCut { .. } => 0,
+                margin_size: match media_settings.length_info {
+                    LengthInfo::Endless => 35,
+                    LengthInfo::Fixed { .. } => 0,
                 },
             });
             commands.add(SelectCompressionMode {
