@@ -14,7 +14,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         high_dpi: false,
         compressed: false,
         quality_priority: true,
-        cut_behaviour: CutBehavior::CutEach,
+        cut_behavior: CutBehavior::CutEach,
     };
     let data = job.compile()?;
     let mut file = File::create("test.bin")?;

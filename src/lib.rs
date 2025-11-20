@@ -27,7 +27,7 @@
 //!         high_dpi: false,
 //!         compressed: false,       // unsupported
 //!         quality_priority: false, // no effect on two-color printing
-//!         cut_behaviour: CutBehavior::CutAtEnd,
+//!         cut_behavior: CutBehavior::CutAtEnd,
 //!     };
 //!     let data = job.compile()?;
 //!     let mut file = File::create("test.bin")?;

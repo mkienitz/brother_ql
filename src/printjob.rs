@@ -49,7 +49,7 @@ pub struct PrintJob {
     /// printing.
     pub quality_priority: bool,
     /// The selected behavior for the automatic cutter unit
-    pub cut_behaviour: CutBehavior,
+    pub cut_behavior: CutBehavior,
 }
 
 impl PrintJob {
@@ -83,9 +83,9 @@ impl PrintJob {
                 first_page: page_no == 0,
             });
             commands.add(VariousMode(VariousModeSettings {
-                auto_cut: self.cut_behaviour != CutBehavior::None,
+                auto_cut: self.cut_behavior != CutBehavior::None,
             }));
-            match self.cut_behaviour {
+            match self.cut_behavior {
                 CutBehavior::CutEvery(n) => {
                     commands.add(SpecifyPageNumber { cut_every: n });
                 }
@@ -96,7 +96,7 @@ impl PrintJob {
             }
             commands.add(ExpandedMode {
                 two_color: media_settings.color,
-                cut_at_end: match self.cut_behaviour {
+                cut_at_end: match self.cut_behavior {
                     CutBehavior::CutAtEnd => true,
                     CutBehavior::CutEvery(n) => !self.no_pages.is_multiple_of(n),
                     _ => false,
