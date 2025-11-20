@@ -55,7 +55,7 @@ pub enum Media {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub(crate) enum MediaType {
+pub enum MediaType {
     Continuous,
     DieCut,
 }
@@ -65,8 +65,9 @@ impl TryFrom<u8> for MediaType {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0x4a => Ok(Self::Continuous),
-            0x4b => Ok(Self::DieCut),
+            // The documentation states 0x4a and 0x4b instead
+            0x0a => Ok(Self::Continuous),
+            0x0b => Ok(Self::DieCut),
             invalid => Err(BQLError::MalformedStatus(format!(
                 "invalid media type code {invalid:#x}"
             ))),

@@ -14,7 +14,8 @@ pub(crate) enum ColorPower {
     HighEnergy,
 }
 
-pub(crate) struct VariousModeSettings {
+#[derive(Debug, Clone, Copy)]
+pub struct VariousModeSettings {
     pub auto_cut: bool,
 }
 
@@ -35,8 +36,9 @@ impl TryFrom<u8> for VariousModeSettings {
 
 pub(crate) enum RasterCommand {
     // Initialization Commands
-    Initialize,
     Invalidate,
+    StatusInformationRequest,
+    Initialize,
     // Control Codes
     SpecifyMarginAmount {
         margin_size: u16,
@@ -84,6 +86,9 @@ impl From<RasterCommand> for Vec<u8> {
         match value {
             Invalidate => {
                 vec![0u8; 400]
+            }
+            StatusInformationRequest => {
+                vec![0x1b, 0x69, 0x53]
             }
             Initialize => {
                 vec![0x1b, 0x40]

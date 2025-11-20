@@ -1,30 +1,18 @@
+//! Printer status information parsing and types
+//!
+//! This module provides types and parsing for the 32-byte status packets
+//! returned by Brother QL printers.
+
 use bitflags::bitflags;
 
-use crate::{commands::VariousModeSettings, error::BQLError, media::MediaType};
-
-pub(crate) enum PrinterModel {
-    QL800,
-    QL810W,
-    QL820NWB,
-}
-
-impl TryFrom<u8> for PrinterModel {
-    type Error = BQLError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0x38 => Ok(Self::QL800),
-            0x39 => Ok(Self::QL810W),
-            0x41 => Ok(Self::QL820NWB),
-            invalid => Err(BQLError::MalformedStatus(format!(
-                "invalid model code {invalid:#x}"
-            ))),
-        }
-    }
-}
+use crate::{
+    commands::VariousModeSettings, error::BQLError, media::MediaType, printer::PrinterModel,
+};
 
 bitflags! {
-pub(crate) struct ErrorFlags: u16 {
+/// Error flags reported by the printer
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ErrorFlags: u16 {
     const NoMediaError = 0b1 << 0;
     const EndOfMediaError = 0b1 << 1; // Only for die-cut labels
     const CutterJamError=0b1 << 2;
@@ -44,12 +32,20 @@ pub(crate) struct ErrorFlags: u16 {
 }
 }
 
-pub(crate) enum StatusType {
+/// Type of status message from the printer
+#[derive(Debug)]
+pub enum StatusType {
+    /// Reply to a status request
     StatusRequestReply,
+    /// Printing has completed
     PrintingCompleted,
+    /// An error has occurred
     ErrorOccured,
+    /// Printer was turned off
     TurnedOff,
+    /// Notification message
     Notification,
+    /// Phase change notification
     PhaseChange,
 }
 
@@ -77,8 +73,12 @@ impl TryFrom<u8> for StatusType {
     }
 }
 
-pub(crate) enum Phase {
+/// Current phase of the printer
+#[derive(Debug)]
+pub enum Phase {
+    /// Receiving data
     Receiving,
+    /// Printing
     Printing,
 }
 
@@ -96,9 +96,14 @@ impl TryFrom<[u8; 3]> for Phase {
     }
 }
 
-pub(crate) enum Notification {
+/// Notification from the printer
+#[derive(Debug)]
+pub enum Notification {
+    /// No notification available
     Unavailable,
+    /// Cooling has started
     CoolingStarted,
+    /// Cooling has finished
     CoolingFinished,
 }
 
@@ -117,7 +122,9 @@ impl TryFrom<u8> for Notification {
     }
 }
 
-pub(crate) struct StatusInformation {
+/// Status information received from the printer
+#[derive(Debug)]
+pub struct StatusInformation {
     model: PrinterModel,
     errors: ErrorFlags,
     media_width: u8,
@@ -129,6 +136,58 @@ pub(crate) struct StatusInformation {
     notification: Notification,
 }
 
+impl StatusInformation {
+    /// Get the printer model
+    pub fn model(&self) -> PrinterModel {
+        self.model
+    }
+
+    /// Get error flags
+    pub fn errors(&self) -> ErrorFlags {
+        self.errors
+    }
+
+    /// Get media width in mm
+    pub fn media_width(&self) -> u8 {
+        self.media_width
+    }
+
+    /// Get media type
+    pub fn media_type(&self) -> Option<MediaType> {
+        self.media_type
+    }
+
+    /// Get various mode settings
+    pub fn mode(&self) -> VariousModeSettings {
+        self.mode
+    }
+
+    /// Get media length in mm (for die-cut labels)
+    pub fn media_length(&self) -> u8 {
+        self.media_length
+    }
+
+    /// Get status type
+    pub fn status_type(&self) -> &StatusType {
+        &self.status_type
+    }
+
+    /// Get current phase
+    pub fn phase(&self) -> &Phase {
+        &self.phase
+    }
+
+    /// Get notification
+    pub fn notification(&self) -> &Notification {
+        &self.notification
+    }
+
+    /// Check if any errors are present
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+}
+
 impl TryFrom<&[u8]> for StatusInformation {
     type Error = BQLError;
 
@@ -136,22 +195,26 @@ impl TryFrom<&[u8]> for StatusInformation {
         let status: &[u8; 32] = value
             .try_into()
             .map_err(|_| BQLError::MalformedStatus(format!("invalid size of {}B", value.len())))?;
-        let check_fixed_field =
-            |offset: usize, name: &str, expected_value: u8| -> Result<(), BQLError> {
-                if status[offset] != expected_value {
-                    return Err(BQLError::MalformedStatus(format!(
-                        "expected value {expected_value:#x} for field {name} at offset {offset}"
-                    )));
-                }
-                Ok(())
-            };
+        let check_fixed_field = |offset: usize,
+                                 name: &str,
+                                 expected_value: u8|
+         -> Result<(), BQLError> {
+            if status[offset] != expected_value {
+                return Err(BQLError::MalformedStatus(format!(
+                    "expected value {expected_value:#x} for field {name} at offset {offset} but was {:#x}",
+                    status[offset]
+                )));
+            }
+            Ok(())
+        };
         check_fixed_field(0, "Print head mark", 0x80)?;
         check_fixed_field(1, "Size", 0x20)?;
         check_fixed_field(2, "Reserved", 0x42)?;
         check_fixed_field(3, "Series code", 0x34)?;
         let model = PrinterModel::try_from(status[4])?;
         check_fixed_field(5, "Reserved", 0x30)?;
-        check_fixed_field(6, "Reserved", 0x30)?;
+        // NOTE: The printer replies with 0x04
+        // check_fixed_field(6, "Reserved", 0x30)?;
         check_fixed_field(7, "Reserved", 0x00)?;
         let errors = ErrorFlags::from_bits_retain(u16::from_le_bytes([status[8], status[9]]));
         let media_width = status[10];
@@ -161,9 +224,10 @@ impl TryFrom<&[u8]> for StatusInformation {
         };
         check_fixed_field(12, "Reserved", 0x00)?;
         check_fixed_field(13, "Reserved", 0x00)?;
-        check_fixed_field(14, "Reserved", 0x3f)?;
+        // NOTE: The printer replies with 0x15
+        // check_fixed_field(14, "Reserved", 0x3f)?;
         let mode = VariousModeSettings::try_from(status[15])?;
-        check_fixed_field(16, "Reserved", 0x3f)?;
+        check_fixed_field(16, "Reserved", 0x00)?;
         let media_length = status[17];
         let status_type = StatusType::try_from(status[18])?;
         let phase_bytes: [u8; 3] = status[19..=21]

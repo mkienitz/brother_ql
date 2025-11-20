@@ -39,8 +39,12 @@
 //! ```
 #![warn(missing_docs)]
 mod commands;
+#[cfg(feature = "usb")]
+pub mod connection;
 pub mod error;
 pub mod media;
+pub mod printer;
 pub mod printjob;
 mod raster_image;
-mod status;
+#[cfg(feature = "usb")]
+pub mod status;
