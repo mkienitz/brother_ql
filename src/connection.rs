@@ -53,20 +53,20 @@ impl UsbConnection {
         let context = Context::new()?;
         let device = Self::find_device(&context, info.vendor_id, info.product_id)?;
         let handle = device.open()?;
-        handle.reset()?;
 
-        // Detach kernel driver if active (Linux-specific)
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(true) = handle.kernel_driver_active(info.interface) {
-                let _ = handle.detach_kernel_driver(info.interface);
-            }
-        }
+        // Auto-detach and reattach kernel driver when claiming/releasing
+        handle.set_auto_detach_kernel_driver(true)?;
 
         // Claim the interface for exclusive access
         handle.set_active_configuration(1)?;
         handle.claim_interface(info.interface)?;
-        handle.set_alternate_setting(info.interface, 0)?;
+
+        if let Err(e) = handle.set_alternate_setting(info.interface, 0) {
+            // NOTE: Since we handle the failed alternate setting call we
+            // propagate the original error instead of a possible cleanup one.
+            let _ = handle.release_interface(info.interface);
+            return Err(e.into());
+        }
 
         Ok(Self {
             handle,
@@ -126,6 +126,7 @@ impl UsbConnection {
         self.read_status()
     }
 
+    /// Read status information but without sending init/invalidate bytes
     fn read_status(&mut self) -> Result<StatusInformation, BQLError> {
         let status_request_bytes: Vec<u8> = RasterCommand::StatusInformationRequest.into();
         self.write(&status_request_bytes)?;
@@ -142,11 +143,12 @@ impl UsbConnection {
         Ok(bytes_read)
     }
 
+    /// Read until the provided buffer is full
     fn read_exact(&mut self, buffer: &mut [u8]) -> Result<(), BQLError> {
         let mut total_read = 0;
         let mut retries = 0;
-        const RETRY_DELAY: Duration = Duration::from_millis(250);
-        const MAX_RETRIES: u32 = Duration::from_secs(5).div_duration_f32(RETRY_DELAY).ceil() as u32;
+        const RETRY_DELAY: Duration = Duration::from_millis(50);
+        const MAX_RETRIES: u32 = Duration::from_secs(3).div_duration_f32(RETRY_DELAY).ceil() as u32;
 
         while total_read < buffer.len() {
             match self.read(&mut buffer[total_read..]) {
