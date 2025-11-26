@@ -4,8 +4,11 @@ use std::time::Duration;
 use rusb::{Context, Device, DeviceHandle, UsbContext};
 
 use crate::{
-    commands::RasterCommand, error::BQLError, printer::PrinterModel, status::StatusInformation,
+    commands::RasterCommand, error::BQLError, printer::PrinterModel, printjob::PrintJob,
+    status::StatusInformation,
 };
+
+use super::PrinterConnection;
 
 /// USB connection parameters for a Brother QL printer
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -174,6 +177,12 @@ impl UsbConnection {
     pub fn print_and_wait(&mut self, data: &[u8]) -> Result<(), BQLError> {
         // TODO: Implement print job execution
         Ok(())
+    }
+}
+
+impl PrinterConnection for UsbConnection {
+    fn print(&mut self, job: &PrintJob) -> Result<(), BQLError> {
+        todo!()
     }
 }
 
