@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Read status from printer
     println!("\nReading printer status...");
-    let status = connection.read_status()?;
+    let status = connection.get_status()?;
 
     // Full debug output
     println!("\n=== Full Status (Debug) ===");

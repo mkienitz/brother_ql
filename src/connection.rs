@@ -104,7 +104,7 @@ impl UsbConnection {
     }
 
     /// Write data to the printer
-    pub fn write(&mut self, data: &[u8]) -> Result<(), BQLError> {
+    fn write(&mut self, data: &[u8]) -> Result<(), BQLError> {
         let bytes_written = self
             .handle
             .write_bulk(self.endpoint_out, data, self.timeout)?;
@@ -118,34 +118,54 @@ impl UsbConnection {
     }
 
     /// Read status information from the printer
-    pub fn read_status(&mut self) -> Result<StatusInformation, BQLError> {
+    pub fn get_status(&mut self) -> Result<StatusInformation, BQLError> {
         let invalidate_bytes: Vec<u8> = RasterCommand::Invalidate.into();
         let init_bytes: Vec<u8> = RasterCommand::Initialize.into();
-        let status_request_bytes: Vec<u8> = RasterCommand::StatusInformationRequest.into();
-
         self.write(&invalidate_bytes)?;
         self.write(&init_bytes)?;
-        // Printer seems to take some time to react
-        std::thread::sleep(Duration::from_millis(1500));
-        self.write(&status_request_bytes)?;
+        self.read_status()
+    }
 
+    fn read_status(&mut self) -> Result<StatusInformation, BQLError> {
+        let status_request_bytes: Vec<u8> = RasterCommand::StatusInformationRequest.into();
+        self.write(&status_request_bytes)?;
         let mut read_buffer = [0u8; 32];
-        while let Ok(n) = self.read(&mut read_buffer) {
-            if n == 0 {
-                std::thread::sleep(Duration::from_millis(500));
-                continue;
-            }
-            break;
-        }
+        self.read_exact(&mut read_buffer)?;
         StatusInformation::try_from(&read_buffer[..])
     }
 
     /// Read raw data from the printer
-    pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize, BQLError> {
+    fn read(&mut self, buffer: &mut [u8]) -> Result<usize, BQLError> {
         let bytes_read = self
             .handle
             .read_bulk(self.endpoint_in, buffer, self.timeout)?;
         Ok(bytes_read)
+    }
+
+    fn read_exact(&mut self, buffer: &mut [u8]) -> Result<(), BQLError> {
+        let mut total_read = 0;
+        let mut retries = 0;
+        const RETRY_DELAY: Duration = Duration::from_millis(250);
+        const MAX_RETRIES: u32 = Duration::from_secs(5).div_duration_f32(RETRY_DELAY).ceil() as u32;
+
+        while total_read < buffer.len() {
+            match self.read(&mut buffer[total_read..]) {
+                Ok(0) => {
+                    retries += 1;
+                    if retries > MAX_RETRIES {
+                        return Err(BQLError::UsbTimeout);
+                    }
+                    // No data available yet, wait and retry
+                    std::thread::sleep(RETRY_DELAY);
+                }
+                Ok(n) => {
+                    total_read += n;
+                    retries = 0; // Reset retries on successful read
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        Ok(())
     }
 
     /// Print data and wait for completion
