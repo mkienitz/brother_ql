@@ -1,11 +1,11 @@
-#![allow(missing_docs)]
+//! Compile a print job for 62mm continuous media and save to file
 
 use std::{error::Error, fs::File, io::Write};
 
 use brother_ql::{media::Media, printjob::PrintJob};
 use tracing_subscriber::{EnvFilter, field::MakeExt};
 
-pub fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     // This example uses pretty logging
     tracing_subscriber::fmt()
         .map_fmt_fields(MakeExt::debug_alt)

@@ -305,9 +305,11 @@ impl UsbConnection {
 
     /// Read until the provided buffer is full
     fn read_exact(&mut self, buffer: &mut [u8]) -> Result<(), StatusError> {
-        const RETRY_DELAY: Duration = Duration::from_millis(50);
-        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        const MAX_RETRIES: u32 = Duration::from_secs(3).div_duration_f32(RETRY_DELAY).ceil() as u32;
+        // 3000ms / 50ms = 60 retries
+        const MAX_WAITING_TIME_MS: u32 = 3000;
+        const RETRY_DELAY_MS: u32 = 50;
+        const MAX_RETRIES: u32 = MAX_WAITING_TIME_MS / RETRY_DELAY_MS;
+        const RETRY_DELAY: Duration = Duration::from_millis(RETRY_DELAY_MS as u64);
 
         let mut total_read = 0;
         let mut retries = 0;
@@ -317,11 +319,9 @@ impl UsbConnection {
                 Ok(0) => {
                     retries += 1;
                     if retries > MAX_RETRIES {
-                        #[allow(clippy::cast_possible_truncation)]
-                        let duration_ms = (RETRY_DELAY * retries).as_millis() as u64;
                         return Err(StatusError::NoResponse {
-                            attempts: retries,
-                            duration_ms,
+                            attempts: MAX_RETRIES,
+                            duration_ms: u64::from(MAX_WAITING_TIME_MS),
                         });
                     }
                     // No data available yet, wait and retry

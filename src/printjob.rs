@@ -42,7 +42,7 @@ pub enum CutBehavior {
 /// # use brother_ql::printjob::{PrintJob, CutBehavior};
 /// # use brother_ql::media::Media;
 /// # use image::DynamicImage;
-/// # fn example(image: &DynamicImage) -> Result<(), brother_ql::error::PrintJobError> {
+/// # fn example(image: DynamicImage) -> Result<(), brother_ql::error::PrintJobError> {
 /// let job = PrintJob::new(image, Media::C62)?
 ///     .page_count(3)
 ///     .high_dpi(false)
@@ -187,8 +187,7 @@ impl PrintJob {
     }
 
     pub(crate) fn into_parts(self) -> PrintJobParts {
-        #[allow(clippy::enum_glob_use)]
-        use RasterCommand::*;
+        use RasterCommand as RC;
 
         let media_settings = MediaSettings::new(self.media);
 
@@ -197,11 +196,11 @@ impl PrintJob {
         for page_no in 0..self.page_count {
             let mut page_commands = RasterCommands::default();
 
-            page_commands.add(SwitchDynamicCommandMode {
+            page_commands.add(RC::SwitchDynamicCommandMode {
                 command_mode: DynamicCommandMode::Raster,
             });
-            page_commands.add(SwitchAutomaticStatusNotificationMode { notify: true });
-            page_commands.add(PrintInformation {
+            page_commands.add(RC::SwitchAutomaticStatusNotificationMode { notify: true });
+            page_commands.add(RC::PrintInformation {
                 media_settings,
                 quality_priority: match self.raster_image {
                     RasterImage::Monochrome { .. } => self.quality_priority,
@@ -211,19 +210,19 @@ impl PrintJob {
                 no_lines: self.height,
                 first_page: page_no == 0,
             });
-            page_commands.add(VariousMode(VariousModeSettings {
+            page_commands.add(RC::VariousMode(VariousModeSettings {
                 auto_cut: self.cut_behavior != CutBehavior::None,
             }));
             match self.cut_behavior {
                 CutBehavior::CutEvery(n) => {
-                    page_commands.add(SpecifyPageNumber { cut_every: n });
+                    page_commands.add(RC::SpecifyPageNumber { cut_every: n });
                 }
                 CutBehavior::CutEach => {
-                    page_commands.add(SpecifyPageNumber { cut_every: 1 });
+                    page_commands.add(RC::SpecifyPageNumber { cut_every: 1 });
                 }
                 _ => {}
             }
-            page_commands.add(ExpandedMode {
+            page_commands.add(RC::ExpandedMode {
                 two_color: media_settings.color,
                 cut_at_end: match self.cut_behavior {
                     CutBehavior::CutAtEnd => true,
@@ -232,19 +231,19 @@ impl PrintJob {
                 },
                 high_dpi: self.high_dpi,
             });
-            page_commands.add(SpecifyMarginAmount {
+            page_commands.add(RC::SpecifyMarginAmount {
                 margin_size: match media_settings.length_info {
                     LengthInfo::Endless => 35,
                     LengthInfo::Fixed { .. } => 0,
                 },
             });
-            page_commands.add(SelectCompressionMode {
+            page_commands.add(RC::SelectCompressionMode {
                 // TODO: Add support for compression
                 tiff_compression: false,
             });
             match &self.raster_image {
                 RasterImage::Monochrome { black_layer } => black_layer.iter().for_each(|line| {
-                    page_commands.add(RasterGraphicsTransfer {
+                    page_commands.add(RC::RasterGraphicsTransfer {
                         data: line.to_vec(),
                     });
                 }),
@@ -255,20 +254,20 @@ impl PrintJob {
                     .iter()
                     .zip(red_layer.iter())
                     .for_each(|(black_line, red_line)| {
-                        page_commands.add(TwoColorRasterGraphicsTransfer {
+                        page_commands.add(RC::TwoColorRasterGraphicsTransfer {
                             data: black_line.to_vec(),
                             color_power: ColorPower::HighEnergy,
                         });
-                        page_commands.add(TwoColorRasterGraphicsTransfer {
+                        page_commands.add(RC::TwoColorRasterGraphicsTransfer {
                             data: red_line.to_vec(),
                             color_power: ColorPower::LowEnergy,
                         });
                     }),
             }
             if page_no == self.page_count - 1 {
-                page_commands.add(PrintWithFeed);
+                page_commands.add(RC::PrintWithFeed);
             } else {
-                page_commands.add(Print);
+                page_commands.add(RC::Print);
             }
             page_data.push(page_commands);
         }

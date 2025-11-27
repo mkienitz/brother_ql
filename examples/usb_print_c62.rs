@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+//! Print 62mm continuous labels via USB connection
 
 use std::error::Error;
 

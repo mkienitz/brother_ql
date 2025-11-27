@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+//! Read and display printer status via USB connection
 
 use std::error::Error;
 
