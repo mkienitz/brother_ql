@@ -67,6 +67,7 @@
               pkgs.cargo-watch
               pkgs.cargo-modules
               pkgs.cargo-release
+              pkgs.bacon
             ]
             ++ (lib.optionals pkgs.stdenv.isDarwin [
               pkgs.libiconv
