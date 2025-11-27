@@ -75,6 +75,20 @@ pub enum UsbError {
     Rusb(#[from] rusb::Error),
 }
 
+/// Kernel communication errors
+#[derive(Error, Debug)]
+pub enum KernelError {
+    /// Kernel read/write operation failed
+    #[error("Kernel IO error: {0}")]
+    IOError(#[from] std::io::Error),
+
+    /// Failed to write all data to the kernel device
+    ///
+    /// This should never occur, but if it does, please report it as a GitHub issue
+    #[error("Incomplete kernel write occured! Please report this issue!")]
+    IncompleteWrite,
+}
+
 /// Status parsing errors
 ///
 /// Returned when status bytes from the printer are malformed.
@@ -93,6 +107,10 @@ pub enum StatusError {
     /// USB communication error
     #[error(transparent)]
     Usb(#[from] UsbError),
+
+    /// Kernel communication error
+    #[error(transparent)]
+    Kernel(#[from] KernelError),
 
     /// Printer did not respond after retries
     #[error("Printer did not respond with a status information reply after being queried")]
@@ -135,6 +153,10 @@ pub enum PrintError {
     /// USB communication error
     #[error(transparent)]
     Usb(#[from] UsbError),
+
+    /// Kernel communication error
+    #[error(transparent)]
+    Kernel(#[from] KernelError),
 
     /// Status reading error (communication, timeout, or parsing)
     #[error(transparent)]
