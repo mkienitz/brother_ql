@@ -54,9 +54,12 @@ pub enum Media {
     D58,
 }
 
+/// Media type of the label roll
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum MediaType {
+    /// Continuous label roll
     Continuous,
+    /// Die-cut labels with
     DieCut,
 }
 
@@ -75,31 +78,38 @@ impl TryFrom<u8> for MediaType {
     }
 }
 
+/// Length information for media
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) enum LengthInfo {
+    /// Continuous media has no fixed length
     Endless,
-    Fixed { length_dots: u32, length_mm: u8 },
+    /// Fixed-length media (die-cut labels)
+    Fixed {
+        /// Length in dots
+        length_dots: u32,
+        /// Length in millimeters
+        length_mm: u8,
+    },
 }
 
-impl LengthInfo {
-    pub fn media_type(&self) -> MediaType {
-        match self {
-            LengthInfo::Endless => MediaType::Continuous,
-            LengthInfo::Fixed { .. } => MediaType::DieCut,
-        }
-    }
-}
-
+/// Physical settings and dimensions for a media type
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) struct MediaSettings {
+    /// Type of label roll (continuous or die-cut)
     pub media_type: MediaType,
+    /// Width in dots
     pub width_dots: u32,
+    /// Width in millimeters
     pub width_mm: u8,
+    /// Length information
     pub length_info: LengthInfo,
+    /// Left margin in dots
     pub left_margin: u32,
+    /// Whether this media supports color printing
     pub color: bool,
 }
 
+/// Helper macro for constructing MediaSettings
 macro_rules! media_settings {
     // Internal builder
     (@build $media_type:expr, $length_info:expr, $width_mm:expr, $width_dots:expr, $left_margin:expr, $color:expr) => {
@@ -127,7 +137,8 @@ macro_rules! media_settings {
 }
 
 impl MediaSettings {
-    pub fn new(media: &Media) -> Self {
+    /// Create media settings for a specific media type
+    pub(crate) const fn new(media: Media) -> Self {
         match media {
             Media::C12 => media_settings!(continuous, 12, 106, 585),
             Media::C29 => media_settings!(continuous, 29, 306, 408),

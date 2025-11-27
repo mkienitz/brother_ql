@@ -76,7 +76,7 @@ impl PrintJob {
             high_dpi: false,
             compressed: false,
             quality_priority: true,
-            cut_behavior: match MediaSettings::new(&media).media_type {
+            cut_behavior: match MediaSettings::new(media).media_type {
                 MediaType::Continuous => CutBehavior::CutEach,
                 MediaType::DieCut => CutBehavior::CutAtEnd,
             },
@@ -114,7 +114,7 @@ impl PrintJob {
     }
 
     pub(crate) fn into_parts(self) -> Result<PrintJobParts, BQLError> {
-        let media_settings = MediaSettings::new(&self.media);
+        let media_settings = MediaSettings::new(self.media);
         let height = self.image.height();
         let raster_image = RasterImage::new(self.image, &media_settings)?;
 
