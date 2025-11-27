@@ -202,7 +202,7 @@ impl UsbConnection {
 impl PrinterConnection for UsbConnection {
     fn print(&mut self, job: PrintJob) -> Result<(), BQLError> {
         info!(?job, "Starting print job...");
-        let no_pages = job.no_pages;
+        let no_pages = job.page_count;
         let parts = job.into_parts()?;
         // Send preamble
         self.write(&parts.preamble.build())?;

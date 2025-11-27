@@ -3,7 +3,6 @@ use std::fmt;
 
 use image::DynamicImage;
 
-use itertools::Itertools;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 
@@ -12,7 +11,7 @@ use crate::{
         ColorPower, DynamicCommandMode, RasterCommand, RasterCommands, VariousModeSettings,
     },
     error::BQLError,
-    media::{LengthInfo, Media, MediaSettings},
+    media::{LengthInfo, Media, MediaSettings, MediaType},
     raster_image::RasterImage,
 };
 
@@ -34,26 +33,26 @@ pub enum CutBehavior {
 /// This struct defines the general settings for the generated print job.
 #[derive(Clone, PartialEq, custom_debug::Debug)]
 pub struct PrintJob {
-    /// The amount of replicas to print
-    pub no_pages: u8,
+    /// The amount of labels to print
+    pub(crate) page_count: u8,
     /// The image to print. The required type is [DynamicImage] from the [image] crate.
     #[debug(with = debug_summarize_image)]
-    pub image: DynamicImage,
+    pub(crate) image: DynamicImage,
     /// The paper type to use for the print job
-    pub media: Media,
+    pub(crate) media: Media,
     /// Whether or not to use high-DPI mode. The image file will need to be double the resolution along
     /// its length. Probably not recommended.
-    pub high_dpi: bool,
+    pub(crate) high_dpi: bool,
     /// Whether or not to use compression
     ///
     /// NOTE:
     /// Currently not respected, defaults to [false]
-    pub compressed: bool,
+    pub(crate) compressed: bool,
     /// Whether or not the printer gives priority to print quality. Has no effect on two-color
     /// printing.
-    pub quality_priority: bool,
+    pub(crate) quality_priority: bool,
     /// The selected behavior for the automatic cutter unit
-    pub cut_behavior: CutBehavior,
+    pub(crate) cut_behavior: CutBehavior,
 }
 
 fn debug_summarize_image(img: &DynamicImage, f: &mut fmt::Formatter) -> fmt::Result {
@@ -66,6 +65,54 @@ pub(crate) struct PrintJobParts {
 }
 
 impl PrintJob {
+    /// Create a new print job with defaults
+    /// TODO: specify defaults in docs
+    pub fn new(image: DynamicImage, media: Media) -> Result<Self, BQLError> {
+        // TODO: Validate image/media compatibility
+        Ok(Self {
+            page_count: 1,
+            image,
+            media,
+            high_dpi: false,
+            compressed: false,
+            quality_priority: true,
+            cut_behavior: match MediaSettings::new(&media).media_type {
+                MediaType::Continuous => CutBehavior::CutEach,
+                MediaType::DieCut => CutBehavior::CutAtEnd,
+            },
+        })
+    }
+
+    /// Set the number of pages to print
+    pub fn page_count(mut self, page_count: u8) -> Self {
+        self.page_count = page_count;
+        self
+    }
+
+    /// Enable or disable high-DPI mode
+    pub fn high_dpi(mut self, high_dpi: bool) -> Self {
+        self.high_dpi = high_dpi;
+        self
+    }
+
+    /// Enable or disable compression
+    pub fn compressed(mut self, compressed: bool) -> Self {
+        self.compressed = compressed;
+        self
+    }
+
+    /// Set whether the printer should prioritize print quality
+    pub fn quality_priority(mut self, quality_priority: bool) -> Self {
+        self.quality_priority = quality_priority;
+        self
+    }
+
+    /// Set the cutting behavior for the automatic cutter unit
+    pub fn cut_behavior(mut self, cut_behavior: CutBehavior) -> Self {
+        self.cut_behavior = cut_behavior;
+        self
+    }
+
     pub(crate) fn into_parts(self) -> Result<PrintJobParts, BQLError> {
         let media_settings = MediaSettings::new(&self.media);
         let height = self.image.height();
@@ -73,7 +120,7 @@ impl PrintJob {
 
         let mut page_data = Vec::new();
 
-        for page_no in 0..self.no_pages {
+        for page_no in 0..self.page_count {
             let mut page_commands = RasterCommands::default();
             use RasterCommand::*;
 
@@ -107,7 +154,7 @@ impl PrintJob {
                 two_color: media_settings.color,
                 cut_at_end: match self.cut_behavior {
                     CutBehavior::CutAtEnd => true,
-                    CutBehavior::CutEvery(n) => !self.no_pages.is_multiple_of(n),
+                    CutBehavior::CutEvery(n) => !self.page_count.is_multiple_of(n),
                     _ => false,
                 },
                 high_dpi: self.high_dpi,
@@ -145,7 +192,7 @@ impl PrintJob {
                         })
                     }),
             };
-            if page_no == self.no_pages - 1 {
+            if page_no == self.page_count - 1 {
                 page_commands.add(PrintWithFeed)
             } else {
                 page_commands.add(Print)
@@ -172,5 +219,18 @@ impl PrintJob {
             .into_iter()
             .for_each(|p| bytes.append(&mut p.build()));
         Ok(bytes)
+    }
+
+    /// Check if a specific printer model can handle this print job
+    ///
+    /// This validates that:
+    /// - The printer supports the media type
+    /// - The printer supports required features (e.g., color printing)
+    /// - Any other printer-specific requirements are met
+    pub fn check_printer_compatibility(
+        &self,
+        _model: crate::printer::PrinterModel,
+    ) -> Result<(), BQLError> {
+        todo!("Implement printer compatibility checks")
     }
 }

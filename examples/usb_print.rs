@@ -4,7 +4,7 @@ use brother_ql::{
     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
     media::Media,
     printer::PrinterModel,
-    printjob::{CutBehavior, PrintJob},
+    printjob::PrintJob,
 };
 use tracing_subscriber::{EnvFilter, field::MakeExt};
 
@@ -23,15 +23,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _status = connection.get_status()?;
     // Create a print job with more than one page
     let img = image::open("test.png")?;
-    let job = PrintJob {
-        no_pages: 2,
-        image: img,
-        media: Media::C62,
-        high_dpi: false,
-        compressed: false,
-        quality_priority: true,
-        cut_behavior: CutBehavior::CutEach,
-    };
+    let job = PrintJob::new(img, Media::C62)?.page_count(2);
+    // These are the defaults for the other options:
+    // .high_dpi(false)
+    // .compressed(false)
+    // .quality_priority(true)
+    // .cut_behavior(CutBehavior::CutEach)?; // default for continuous media
     // Finally, print
     connection.print(job)?;
 
