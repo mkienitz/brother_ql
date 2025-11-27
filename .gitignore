@@ -4,5 +4,4 @@
 *.pdf
 /result
 /pkg
-/examples/d24.rs
 /.pre-commit-config.yaml
