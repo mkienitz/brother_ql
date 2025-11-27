@@ -13,6 +13,16 @@ pub enum PrinterModel {
     QL820NWB,
 }
 
+impl PrinterModel {
+    pub(crate) const fn pid(&self) -> u16 {
+        match self {
+            PrinterModel::QL800 => 0x209b,
+            PrinterModel::QL810W => 0x209c,
+            PrinterModel::QL820NWB => 0x209d,
+        }
+    }
+}
+
 impl TryFrom<u8> for PrinterModel {
     type Error = StatusParsingError;
 
