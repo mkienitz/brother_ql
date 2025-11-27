@@ -33,7 +33,7 @@ pub struct ErrorFlags: u16 {
 }
 
 /// Type of status message from the printer
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum StatusType {
     /// Reply to a status request
     StatusRequestReply,
@@ -74,7 +74,7 @@ impl TryFrom<u8> for StatusType {
 }
 
 /// Current phase of the printer
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Phase {
     /// Receiving data
     Receiving,

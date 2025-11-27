@@ -184,6 +184,19 @@ impl UsbConnection {
         }
         Ok(())
     }
+
+    /// Validate that information reply matches expected state
+    fn validate_status(
+        &self,
+        status: &StatusInformation,
+        expected_type: &StatusType,
+        expected_phase: &Phase,
+    ) -> Result<(), BQLError> {
+        match (status.has_errors(), &status.status_type, &status.phase) {
+            (false, t, p) if t == expected_type && p == expected_phase => Ok(()),
+            _ => Err(BQLError::PrintingError(status.errors)),
+        }
+    }
 }
 
 impl PrinterConnection for UsbConnection {
@@ -193,12 +206,9 @@ impl PrinterConnection for UsbConnection {
         let parts = job.into_parts()?;
         // Send preamble
         self.write(&parts.preamble.build())?;
-        // Send status information request
-        let mut status = self.get_status()?;
-        match (status.has_errors(), &status.status_type, &status.phase) {
-            (false, StatusType::StatusRequestReply, Phase::Receiving) => {}
-            _ => return Err(BQLError::PrintingError(status.errors)),
-        }
+        // Send status information request and validate printer is ready
+        let status = self.get_status()?;
+        self.validate_status(&status, &StatusType::StatusRequestReply, &Phase::Receiving)?;
         for (page_no, page) in parts.page_data.into_iter().enumerate() {
             debug!(
                 "Sending print data for page {}/{}...",
@@ -207,23 +217,14 @@ impl PrinterConnection for UsbConnection {
             );
             self.write(&page.build())?;
             // Printer should change phase to "Printing"
-            status = self.read_status_reply()?;
-            match (status.has_errors(), &status.status_type, &status.phase) {
-                (false, StatusType::PhaseChange, Phase::Printing) => {}
-                _ => return Err(BQLError::PrintingError(status.errors)),
-            }
+            let status = self.read_status_reply()?;
+            self.validate_status(&status, &StatusType::PhaseChange, &Phase::Printing)?;
             // Printer should signal print completion
-            status = self.read_status_reply()?;
-            match (status.has_errors(), &status.status_type, &status.phase) {
-                (false, StatusType::PrintingCompleted, Phase::Printing) => {}
-                _ => return Err(BQLError::PrintingError(status.errors)),
-            }
+            let status = self.read_status_reply()?;
+            self.validate_status(&status, &StatusType::PrintingCompleted, &Phase::Printing)?;
             // Printer should change phase to "Receiving" again
-            status = self.read_status_reply()?;
-            match (status.has_errors(), &status.status_type, &status.phase) {
-                (false, StatusType::PhaseChange, Phase::Receiving) => {}
-                _ => return Err(BQLError::PrintingError(status.errors)),
-            }
+            let status = self.read_status_reply()?;
+            self.validate_status(&status, &StatusType::PhaseChange, &Phase::Receiving)?;
             info!("Page {}/{} printed successfully!", page_no + 1, no_pages);
         }
         info!("Print job completed successfully!");
