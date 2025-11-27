@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Read status from printer
     let _status = connection.get_status()?;
     // Create a print job with more than one page
-    let img = image::open("test.png")?;
+    let img = image::open("c62.png")?;
     let job = PrintJob::new(img, Media::C62)?.page_count(2);
     // These are the defaults for the other options:
     // .high_dpi(false)
