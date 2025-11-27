@@ -125,63 +125,27 @@ impl TryFrom<u8> for Notification {
 /// Status information received from the printer
 #[derive(Debug)]
 pub struct StatusInformation {
-    model: PrinterModel,
-    errors: ErrorFlags,
-    media_width: u8,
-    media_type: Option<MediaType>,
-    mode: VariousModeSettings,
-    media_length: u8,
-    status_type: StatusType,
-    phase: Phase,
-    notification: Notification,
+    /// The printer model
+    pub model: PrinterModel,
+    /// Error flags
+    pub errors: ErrorFlags,
+    /// Media width in mm
+    pub media_width: u8,
+    /// Media type
+    pub media_type: Option<MediaType>,
+    /// Various mode settings
+    pub mode: VariousModeSettings,
+    /// Media length in mm (for die-cut labels)
+    pub media_length: u8,
+    /// Status type
+    pub status_type: StatusType,
+    /// Current phase
+    pub phase: Phase,
+    /// Notification
+    pub notification: Notification,
 }
 
 impl StatusInformation {
-    /// Get the printer model
-    pub fn model(&self) -> PrinterModel {
-        self.model
-    }
-
-    /// Get error flags
-    pub fn errors(&self) -> ErrorFlags {
-        self.errors
-    }
-
-    /// Get media width in mm
-    pub fn media_width(&self) -> u8 {
-        self.media_width
-    }
-
-    /// Get media type
-    pub fn media_type(&self) -> Option<MediaType> {
-        self.media_type
-    }
-
-    /// Get various mode settings
-    pub fn mode(&self) -> VariousModeSettings {
-        self.mode
-    }
-
-    /// Get media length in mm (for die-cut labels)
-    pub fn media_length(&self) -> u8 {
-        self.media_length
-    }
-
-    /// Get status type
-    pub fn status_type(&self) -> &StatusType {
-        &self.status_type
-    }
-
-    /// Get current phase
-    pub fn phase(&self) -> &Phase {
-        &self.phase
-    }
-
-    /// Get notification
-    pub fn notification(&self) -> &Notification {
-        &self.notification
-    }
-
     /// Check if any errors are present
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()

@@ -195,9 +195,9 @@ impl PrinterConnection for UsbConnection {
         self.write(&parts.preamble.build())?;
         // Send status information request
         let mut status = self.get_status()?;
-        match (status.has_errors(), status.status_type(), status.phase()) {
+        match (status.has_errors(), &status.status_type, &status.phase) {
             (false, StatusType::StatusRequestReply, Phase::Receiving) => {}
-            _ => return Err(BQLError::PrintingError(status.errors())),
+            _ => return Err(BQLError::PrintingError(status.errors)),
         }
         for (page_no, page) in parts.page_data.into_iter().enumerate() {
             debug!(
@@ -208,21 +208,21 @@ impl PrinterConnection for UsbConnection {
             self.write(&page.build())?;
             // Printer should change phase to "Printing"
             status = self.read_status_reply()?;
-            match (status.has_errors(), status.status_type(), status.phase()) {
+            match (status.has_errors(), &status.status_type, &status.phase) {
                 (false, StatusType::PhaseChange, Phase::Printing) => {}
-                _ => return Err(BQLError::PrintingError(status.errors())),
+                _ => return Err(BQLError::PrintingError(status.errors)),
             }
             // Printer should signal print completion
             status = self.read_status_reply()?;
-            match (status.has_errors(), status.status_type(), status.phase()) {
+            match (status.has_errors(), &status.status_type, &status.phase) {
                 (false, StatusType::PrintingCompleted, Phase::Printing) => {}
-                _ => return Err(BQLError::PrintingError(status.errors())),
+                _ => return Err(BQLError::PrintingError(status.errors)),
             }
             // Printer should change phase to "Receiving" again
             status = self.read_status_reply()?;
-            match (status.has_errors(), status.status_type(), status.phase()) {
+            match (status.has_errors(), &status.status_type, &status.phase) {
                 (false, StatusType::PhaseChange, Phase::Receiving) => {}
-                _ => return Err(BQLError::PrintingError(status.errors())),
+                _ => return Err(BQLError::PrintingError(status.errors)),
             }
             info!("Page {}/{} printed successfully!", page_no + 1, no_pages);
         }
