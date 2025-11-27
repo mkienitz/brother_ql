@@ -104,9 +104,11 @@ impl UsbConnection {
 
         // Auto-detach and reattach kernel driver when claiming/releasing
         handle.set_auto_detach_kernel_driver(true)?;
-
-        // Claim the interface for exclusive access
+        if handle.kernel_driver_active(0)? {
+            handle.detach_kernel_driver(0)?;
+        }
         handle.set_active_configuration(1)?;
+        // Claim the interface for exclusive access
         handle.claim_interface(info.interface)?;
 
         if let Err(e) = handle.set_alternate_setting(info.interface, 0) {
