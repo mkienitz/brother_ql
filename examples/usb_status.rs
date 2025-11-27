@@ -1,3 +1,5 @@
+#![allow(missing_docs, clippy::redundant_closure_for_method_calls)]
+
 use std::error::Error;
 
 use brother_ql::{

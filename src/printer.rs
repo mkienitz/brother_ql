@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use crate::error::BQLError;
+use crate::error::StatusParsingError;
 
 /// Brother QL printer model
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -17,6 +17,7 @@ pub enum PrinterModel {
 
 impl PrinterModel {
     /// Get the USB product ID for this printer model
+    #[must_use]
     pub const fn product_id(self) -> u16 {
         match self {
             Self::QL800 => 0x209b,
@@ -26,6 +27,7 @@ impl PrinterModel {
     }
 
     /// Get the USB vendor ID
+    #[must_use]
     pub const fn vendor_id(self) -> u16 {
         0x04f9 // Brother
     }
@@ -33,6 +35,7 @@ impl PrinterModel {
     /// Get the USB interface number
     ///
     /// Uses interface 0, alternate setting 0 (the printer interface).
+    #[must_use]
     pub const fn interface(self) -> u8 {
         0
     }
@@ -41,6 +44,7 @@ impl PrinterModel {
     ///
     /// Endpoint 2 OUT (Bulk transfer, 64 byte max packet size).
     /// Verified from lsusb output.
+    #[must_use]
     pub const fn endpoint_out(self) -> u8 {
         0x02
     }
@@ -49,27 +53,29 @@ impl PrinterModel {
     ///
     /// Endpoint 1 IN (Bulk transfer, 64 byte max packet size).
     /// Verified from lsusb output.
+    #[must_use]
     pub const fn endpoint_in(self) -> u8 {
         0x81
     }
 
     /// Get the default timeout for USB operations
+    #[must_use]
     pub const fn default_timeout(self) -> Duration {
         Duration::from_millis(5000)
     }
 }
 
 impl TryFrom<u8> for PrinterModel {
-    type Error = BQLError;
+    type Error = StatusParsingError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0x38 => Ok(Self::QL800),
             0x39 => Ok(Self::QL810W),
             0x41 => Ok(Self::QL820NWB),
-            invalid => Err(BQLError::MalformedStatus(format!(
-                "invalid model code {invalid:#x}"
-            ))),
+            invalid => Err(StatusParsingError {
+                reason: format!("invalid model code {invalid:#x}"),
+            }),
         }
     }
 }

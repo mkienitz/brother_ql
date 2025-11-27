@@ -5,12 +5,13 @@ use image::{
 use itertools::Itertools;
 
 use crate::{
-    error::BQLError,
+    error::PrintJobError,
     media::{LengthInfo, MediaSettings},
 };
 
 type RasterLayer = Vec<[u8; 90]>;
 
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum RasterImage {
     Monochrome {
         black_layer: RasterLayer,
@@ -22,34 +23,47 @@ pub(crate) enum RasterImage {
 }
 
 impl RasterImage {
-    pub(crate) fn new(img: DynamicImage, media_settings: &MediaSettings) -> Result<Self, BQLError> {
+    pub(crate) fn new(
+        img: &DynamicImage,
+        media_settings: &MediaSettings,
+    ) -> Result<Self, PrintJobError> {
         let (width, height) = img.dimensions();
         // Always check width, for die-cut labels, also check height
         if media_settings.width_dots != width {
-            return Err(BQLError::DimensionMismatch);
+            return Err(PrintJobError::DimensionMismatch {
+                expected_width: media_settings.width_dots,
+                actual_width: width,
+                expected_height: None,
+                actual_height: height,
+            });
         }
         if let LengthInfo::Fixed { length_dots, .. } = media_settings.length_info {
             if length_dots != height {
-                return Err(BQLError::DimensionMismatch);
+                return Err(PrintJobError::DimensionMismatch {
+                    expected_width: media_settings.width_dots,
+                    actual_width: width,
+                    expected_height: Some(length_dots),
+                    actual_height: height,
+                });
             }
         }
         Ok(if media_settings.color {
             Self::TwoColor {
-                black_layer: mask_to_raster_layer(create_mask(
-                    &img,
+                black_layer: mask_to_raster_layer(&create_mask(
+                    img,
                     media_settings.left_margin,
                     |r, g, b| r == g && r == b && r < 200,
                 )),
-                red_layer: mask_to_raster_layer(create_mask(
-                    &img,
+                red_layer: mask_to_raster_layer(&create_mask(
+                    img,
                     media_settings.left_margin,
                     |r, g, b| r > 100 && r > b && r > g,
                 )),
             }
         } else {
             Self::Monochrome {
-                black_layer: mask_to_raster_layer(create_mask(
-                    &img,
+                black_layer: mask_to_raster_layer(&create_mask(
+                    img,
                     media_settings.left_margin,
                     |r, g, b| !(r == b && r == g && r == 255),
                 )),
@@ -58,7 +72,7 @@ impl RasterImage {
     }
 }
 
-fn mask_to_raster_layer(mask: GrayImage) -> RasterLayer {
+fn mask_to_raster_layer(mask: &GrayImage) -> RasterLayer {
     let mut res: Vec<[u8; 90]> = mask
         .pixels()
         .chunks(720)

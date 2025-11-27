@@ -1,5 +1,5 @@
 use crate::{
-    error::BQLError,
+    error::StatusParsingError,
     media::{LengthInfo, MediaSettings},
 };
 
@@ -20,15 +20,15 @@ pub struct VariousModeSettings {
 }
 
 impl TryFrom<u8> for VariousModeSettings {
-    type Error = BQLError;
+    type Error = StatusParsingError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         let ac = match value {
             0x40 => Ok(true),
             0x00 => Ok(false),
-            _ => Err(BQLError::MalformedStatus(
-                "various mode data has unused bits set".to_string(),
-            )),
+            _ => Err(StatusParsingError {
+                reason: "various mode data has unused bits set".to_string(),
+            }),
         }?;
         Ok(VariousModeSettings { auto_cut: ac })
     }
@@ -81,6 +81,7 @@ pub(crate) enum RasterCommand {
 }
 
 impl From<RasterCommand> for Vec<u8> {
+    #[allow(clippy::too_many_lines, clippy::enum_glob_use)]
     fn from(value: RasterCommand) -> Self {
         use RasterCommand::*;
         match value {
@@ -107,10 +108,11 @@ impl From<RasterCommand> for Vec<u8> {
                 vec![0x1b, 0x69, 0x61, m]
             }
             SwitchAutomaticStatusNotificationMode { notify } => {
-                let n = if notify { 0x00 } else { 0x01 };
+                let n = u8::from(!notify);
                 vec![0x1b, 0x69, 0x21, n]
             }
             RasterGraphicsTransfer { mut data } => {
+                #[allow(clippy::cast_possible_truncation)]
                 let mut res = vec![0x67, 0x00, data.len() as u8];
                 res.append(&mut data);
                 res
@@ -123,6 +125,7 @@ impl From<RasterCommand> for Vec<u8> {
                     ColorPower::HighEnergy => 0x01,
                     ColorPower::LowEnergy => 0x02,
                 };
+                #[allow(clippy::cast_possible_truncation)]
                 let mut res = vec![0x77, cp, data.len() as u8];
                 res.append(&mut data);
                 res
@@ -161,10 +164,10 @@ impl From<RasterCommand> for Vec<u8> {
                     flags |= 0b1;
                 }
                 if cut_at_end {
-                    flags |= 0b1 << 3
+                    flags |= 0b1 << 3;
                 }
                 if high_dpi {
-                    flags |= 0b1 << 6
+                    flags |= 0b1 << 6;
                 }
                 vec![0x1b, 0x69, 0x4b, flags]
             }
@@ -197,7 +200,7 @@ impl From<RasterCommand> for Vec<u8> {
                     valid_flag |= 0x80;
                 }
                 let [n8, n7, n6, n5] = no_lines.to_be_bytes();
-                let first_page = if first_page { 0x00 } else { 0x01 };
+                let first_page = u8::from(!first_page);
                 vec![
                     0x1b,
                     0x69,
@@ -225,7 +228,7 @@ pub(crate) struct RasterCommands {
 
 impl RasterCommands {
     pub fn add(&mut self, cmd: RasterCommand) {
-        self.commands.push(cmd.into())
+        self.commands.push(cmd.into());
     }
 
     pub fn build(self) -> Vec<u8> {

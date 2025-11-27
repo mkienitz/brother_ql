@@ -2,7 +2,7 @@
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 
-use crate::error::BQLError;
+use crate::error::StatusParsingError;
 
 /// This enum represents the available paper types.
 #[cfg_attr(feature = "serde", derive(Deserialize))]
@@ -64,16 +64,16 @@ pub enum MediaType {
 }
 
 impl TryFrom<u8> for MediaType {
-    type Error = BQLError;
+    type Error = StatusParsingError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             // The documentation states 0x4a and 0x4b instead
             0x0a => Ok(Self::Continuous),
             0x0b => Ok(Self::DieCut),
-            invalid => Err(BQLError::MalformedStatus(format!(
-                "invalid media type code {invalid:#x}"
-            ))),
+            invalid => Err(StatusParsingError {
+                reason: format!("invalid media type code {invalid:#x}"),
+            }),
         }
     }
 }
@@ -109,7 +109,7 @@ pub(crate) struct MediaSettings {
     pub color: bool,
 }
 
-/// Helper macro for constructing MediaSettings
+/// Helper macro for constructing `MediaSettings`
 macro_rules! media_settings {
     // Internal builder
     (@build $media_type:expr, $length_info:expr, $width_mm:expr, $width_dots:expr, $left_margin:expr, $color:expr) => {

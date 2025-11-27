@@ -6,7 +6,7 @@ use tracing::{debug, info};
 
 use crate::{
     commands::{RasterCommand, RasterCommands},
-    error::BQLError,
+    error::{PrintError, ProtocolError, StatusError, UsbError},
     printer::PrinterModel,
     printjob::PrintJob,
     status::{Phase, StatusInformation, StatusType},
@@ -15,6 +15,26 @@ use crate::{
 use super::PrinterConnection;
 
 /// USB connection parameters for a Brother QL printer
+///
+/// Contains all the USB-specific information needed to establish a connection
+/// to a Brother QL label printer. For most use cases, use [`UsbConnectionInfo::from_model`]
+/// to get the correct parameters for your printer model.
+///
+/// # Example
+/// ```no_run
+/// # use brother_ql::{
+/// #     connection::{UsbConnection, UsbConnectionInfo},
+/// #     printer::PrinterModel,
+/// # };
+/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// // Create connection info for a specific printer model
+/// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+///
+/// // Open the connection
+/// let connection = UsbConnection::open(info)?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UsbConnectionInfo {
     /// USB vendor ID (typically 0x04f9 for Brother Industries, Ltd)
@@ -33,6 +53,18 @@ pub struct UsbConnectionInfo {
 
 impl UsbConnectionInfo {
     /// Create connection info from a printer model
+    ///
+    /// Returns the correct USB parameters (vendor ID, product ID, endpoints, etc.)
+    /// for the specified printer model. This is the recommended way to create
+    /// connection info for known printer models.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use brother_ql::{connection::UsbConnectionInfo, printer::PrinterModel};
+    /// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+    /// assert_eq!(info.vendor_id, 0x04f9); // Brother vendor ID
+    /// ```
+    #[must_use]
     pub const fn from_model(model: PrinterModel) -> Self {
         Self {
             vendor_id: model.vendor_id(),
@@ -46,6 +78,39 @@ impl UsbConnectionInfo {
 }
 
 /// USB connection to a Brother QL printer
+///
+/// Manages a USB connection to a Brother QL label printer. The connection automatically
+/// handles kernel driver detachment/reattachment and interface cleanup.
+///
+/// # Connection Lifecycle
+/// - **Opening**: Claims the USB interface and configures endpoints
+/// - **During use**: Sends commands and receives status updates
+/// - **Closing**: Automatically releases the interface when dropped
+///
+/// # Example
+/// ```no_run
+/// # use brother_ql::{
+/// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
+/// #     media::Media,
+/// #     printer::PrinterModel,
+/// #     printjob::PrintJob,
+/// # };
+/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// // Open connection
+/// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+/// let mut connection = UsbConnection::open(info)?;
+///
+/// // Check printer status
+/// let status = connection.get_status()?;
+/// println!("Printer model: {:?}", status.model);
+///
+/// // Print a label
+/// let image = image::open("label.png")?;
+/// let job = PrintJob::new(&image, Media::C62)?;
+/// connection.print(job)?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct UsbConnection {
     handle: DeviceHandle<Context>,
     interface: u8,
@@ -56,7 +121,31 @@ pub struct UsbConnection {
 
 impl UsbConnection {
     /// Open a USB connection to a Brother QL printer
-    pub fn open(info: UsbConnectionInfo) -> Result<Self, BQLError> {
+    ///
+    /// Searches for a USB device matching the vendor and product IDs in the connection info,
+    /// then claims the interface for exclusive access. The kernel driver is automatically
+    /// detached and will be reattached when the connection is closed.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - No USB device is found with the specified vendor/product ID
+    /// - The USB device cannot be opened
+    /// - The interface cannot be claimed
+    /// - USB configuration fails
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use brother_ql::{
+    /// #     connection::{UsbConnection, UsbConnectionInfo},
+    /// #     printer::PrinterModel,
+    /// # };
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+    /// let connection = UsbConnection::open(info)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn open(info: UsbConnectionInfo) -> Result<Self, UsbError> {
         debug!("Opening USB Connection to the printer...");
         let context = Context::new()?;
         let device = Self::find_device(&context, info.vendor_id, info.product_id)?;
@@ -91,7 +180,7 @@ impl UsbConnection {
         context: &Context,
         vendor_id: u16,
         product_id: u16,
-    ) -> Result<Device<Context>, BQLError> {
+    ) -> Result<Device<Context>, UsbError> {
         let devices = context.devices()?;
 
         for device in devices.iter() {
@@ -101,24 +190,44 @@ impl UsbConnection {
             }
         }
 
-        Err(BQLError::UsbDeviceNotFound {
+        Err(UsbError::DeviceNotFound {
             vendor_id,
             product_id,
         })
     }
 
     /// Set the timeout for USB operations
+    ///
+    /// Changes the timeout used for USB read and write operations.
+    /// The default timeout is determined by [`PrinterModel::default_timeout`].
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use std::time::Duration;
+    /// # use brother_ql::{
+    /// #     connection::{UsbConnection, UsbConnectionInfo},
+    /// #     printer::PrinterModel,
+    /// # };
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+    /// let mut connection = UsbConnection::open(info)?;
+    ///
+    /// // Increase timeout for slower operations
+    /// connection.set_timeout(Duration::from_secs(10));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn set_timeout(&mut self, timeout: Duration) {
         self.timeout = timeout;
     }
 
     /// Write data to the printer
-    fn write(&self, data: &[u8]) -> Result<(), BQLError> {
+    fn write(&self, data: &[u8]) -> Result<(), UsbError> {
         let bytes_written = self
             .handle
             .write_bulk(self.endpoint_out, data, self.timeout)?;
         if bytes_written != data.len() {
-            return Err(BQLError::IncompleteWrite {
+            return Err(UsbError::IncompleteWrite {
                 written: bytes_written,
                 expected: data.len(),
             });
@@ -126,7 +235,7 @@ impl UsbConnection {
         Ok(())
     }
 
-    fn send_status_request(&self) -> Result<(), BQLError> {
+    fn send_status_request(&self) -> Result<(), UsbError> {
         debug!("Sending status information request to the printer...");
         let status_request_bytes: Vec<u8> = RasterCommand::StatusInformationRequest.into();
         self.write(&status_request_bytes)?;
@@ -134,7 +243,43 @@ impl UsbConnection {
     }
 
     /// Read status information from the printer
-    pub fn get_status(&mut self) -> Result<StatusInformation, BQLError> {
+    ///
+    /// Sends a status request to the printer and returns detailed information about:
+    /// - Printer model
+    /// - Current errors (if any)
+    /// - Media type and dimensions
+    /// - Current phase (receiving, printing, etc.)
+    /// - Various mode settings
+    ///
+    /// This method sends the initialization preamble before requesting status.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Communication with the printer fails
+    /// - The status reply is malformed or incomplete
+    /// - USB timeout occurs
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use brother_ql::{
+    /// #     connection::{UsbConnection, UsbConnectionInfo},
+    /// #     printer::PrinterModel,
+    /// # };
+    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+    /// let mut connection = UsbConnection::open(info)?;
+    ///
+    /// let status = connection.get_status()?;
+    /// println!("Printer: {:?}", status.model);
+    /// println!("Media width: {}mm", status.media_width);
+    ///
+    /// if status.has_errors() {
+    ///     eprintln!("Printer errors: {:?}", status.errors);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_status(&mut self) -> Result<StatusInformation, StatusError> {
         let preamble_bytes = RasterCommands::create_preamble().build();
         self.write(&preamble_bytes)?;
         self.send_status_request()?;
@@ -142,7 +287,7 @@ impl UsbConnection {
     }
 
     /// Read status information but without sending init/invalidate bytes
-    fn read_status_reply(&mut self) -> Result<StatusInformation, BQLError> {
+    fn read_status_reply(&mut self) -> Result<StatusInformation, StatusError> {
         let mut read_buffer = [0u8; 32];
         self.read_exact(&mut read_buffer)?;
         let status = StatusInformation::try_from(&read_buffer[..])?;
@@ -151,7 +296,7 @@ impl UsbConnection {
     }
 
     /// Read raw data from the printer
-    fn read(&mut self, buffer: &mut [u8]) -> Result<usize, BQLError> {
+    fn read(&mut self, buffer: &mut [u8]) -> Result<usize, UsbError> {
         let bytes_read = self
             .handle
             .read_bulk(self.endpoint_in, buffer, self.timeout)?;
@@ -159,18 +304,25 @@ impl UsbConnection {
     }
 
     /// Read until the provided buffer is full
-    fn read_exact(&mut self, buffer: &mut [u8]) -> Result<(), BQLError> {
+    fn read_exact(&mut self, buffer: &mut [u8]) -> Result<(), StatusError> {
+        const RETRY_DELAY: Duration = Duration::from_millis(50);
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        const MAX_RETRIES: u32 = Duration::from_secs(3).div_duration_f32(RETRY_DELAY).ceil() as u32;
+
         let mut total_read = 0;
         let mut retries = 0;
-        const RETRY_DELAY: Duration = Duration::from_millis(50);
-        const MAX_RETRIES: u32 = Duration::from_secs(3).div_duration_f32(RETRY_DELAY).ceil() as u32;
 
         while total_read < buffer.len() {
             match self.read(&mut buffer[total_read..]) {
                 Ok(0) => {
                     retries += 1;
                     if retries > MAX_RETRIES {
-                        return Err(BQLError::UsbTimeout);
+                        #[allow(clippy::cast_possible_truncation)]
+                        let duration_ms = (RETRY_DELAY * retries).as_millis() as u64;
+                        return Err(StatusError::NoResponse {
+                            attempts: retries,
+                            duration_ms,
+                        });
                     }
                     // No data available yet, wait and retry
                     std::thread::sleep(RETRY_DELAY);
@@ -179,7 +331,7 @@ impl UsbConnection {
                     total_read += n;
                     retries = 0; // Reset retries on successful read
                 }
-                Err(e) => return Err(e),
+                Err(e) => return Err(e.into()),
             }
         }
         Ok(())
@@ -187,28 +339,39 @@ impl UsbConnection {
 
     /// Validate that information reply matches expected state
     fn validate_status(
-        &self,
         status: &StatusInformation,
         expected_type: &StatusType,
         expected_phase: &Phase,
-    ) -> Result<(), BQLError> {
-        match (status.has_errors(), &status.status_type, &status.phase) {
-            (false, t, p) if t == expected_type && p == expected_phase => Ok(()),
-            _ => Err(BQLError::PrintingError(status.errors)),
+    ) -> Result<(), ProtocolError> {
+        // Check if printer has errors first
+        if status.has_errors() {
+            return Err(ProtocolError::PrinterError(status.errors));
         }
+
+        // Check if status type and phase match expectations
+        if &status.status_type != expected_type || &status.phase != expected_phase {
+            return Err(ProtocolError::UnexpectedStatus {
+                expected_type: expected_type.clone(),
+                expected_phase: expected_phase.clone(),
+                actual_type: status.status_type.clone(),
+                actual_phase: status.phase.clone(),
+            });
+        }
+
+        Ok(())
     }
 }
 
 impl PrinterConnection for UsbConnection {
-    fn print(&mut self, job: PrintJob) -> Result<(), BQLError> {
+    fn print(&mut self, job: PrintJob) -> Result<(), PrintError> {
         info!(?job, "Starting print job...");
         let no_pages = job.page_count;
-        let parts = job.into_parts()?;
+        let parts = job.into_parts();
         // Send preamble
         self.write(&parts.preamble.build())?;
         // Send status information request and validate printer is ready
-        let status = self.get_status()?;
-        self.validate_status(&status, &StatusType::StatusRequestReply, &Phase::Receiving)?;
+        let status = self.get_status().map_err(PrintError::Status)?;
+        Self::validate_status(&status, &StatusType::StatusRequestReply, &Phase::Receiving)?;
         for (page_no, page) in parts.page_data.into_iter().enumerate() {
             debug!(
                 "Sending print data for page {}/{}...",
@@ -217,14 +380,14 @@ impl PrinterConnection for UsbConnection {
             );
             self.write(&page.build())?;
             // Printer should change phase to "Printing"
-            let status = self.read_status_reply()?;
-            self.validate_status(&status, &StatusType::PhaseChange, &Phase::Printing)?;
+            let status = self.read_status_reply().map_err(PrintError::Status)?;
+            Self::validate_status(&status, &StatusType::PhaseChange, &Phase::Printing)?;
             // Printer should signal print completion
-            let status = self.read_status_reply()?;
-            self.validate_status(&status, &StatusType::PrintingCompleted, &Phase::Printing)?;
+            let status = self.read_status_reply().map_err(PrintError::Status)?;
+            Self::validate_status(&status, &StatusType::PrintingCompleted, &Phase::Printing)?;
             // Printer should change phase to "Receiving" again
-            let status = self.read_status_reply()?;
-            self.validate_status(&status, &StatusType::PhaseChange, &Phase::Receiving)?;
+            let status = self.read_status_reply().map_err(PrintError::Status)?;
+            Self::validate_status(&status, &StatusType::PhaseChange, &Phase::Receiving)?;
             info!("Page {}/{} printed successfully!", page_no + 1, no_pages);
         }
         info!("Print job completed successfully!");
