@@ -29,7 +29,7 @@
 //!     let _status = connection.get_status()?;
 //!     // Create a print job with more than one page
 //!     let img = image::open("test.png")?;
-//!     let job = PrintJob::new(&img, Media::C62)?.page_count(2);
+//!     let job = PrintJob::new(img, Media::C62)?.page_count(2);
 //!     // These are the defaults for the other options:
 //!     // .high_dpi(false)
 //!     // .compressed(false)

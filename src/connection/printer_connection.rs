@@ -22,7 +22,7 @@ use crate::{error::PrintError, printjob::PrintJob};
 ///
 /// // Create a print job
 /// let image = image::open("label.png")?;
-/// let job = PrintJob::new(&image, Media::C62)?;
+/// let job = PrintJob::new(image, Media::C62)?;
 ///
 /// // Print using the trait method
 /// connection.print(job)?;

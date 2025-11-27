@@ -108,14 +108,14 @@ impl PrintJob {
     /// # use brother_ql::media::Media;
     /// # fn example() -> Result<(), brother_ql::error::PrintJobError> {
     /// let image = image::open("label.png")?;
-    /// let job = PrintJob::new(&image, Media::C62)?;
+    /// let job = PrintJob::new(image, Media::C62)?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(image: &DynamicImage, media: Media) -> Result<Self, PrintJobError> {
+    pub fn new(image: DynamicImage, media: Media) -> Result<Self, PrintJobError> {
         let media_settings = MediaSettings::new(media);
         let height = image.height();
-        let raster_image = RasterImage::new(image, &media_settings)?;
+        let raster_image = RasterImage::new(image, media_settings)?;
 
         Ok(Self {
             page_count: 1,
@@ -293,7 +293,7 @@ impl PrintJob {
     /// # use std::io::Write;
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let image = image::open("label.png")?;
-    /// let job = PrintJob::new(&image, Media::C62)?;
+    /// let job = PrintJob::new(image, Media::C62)?;
     /// let bytes = job.compile();
     ///
     /// // Save to file

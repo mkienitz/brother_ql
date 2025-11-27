@@ -24,8 +24,8 @@ pub(crate) enum RasterImage {
 
 impl RasterImage {
     pub(crate) fn new(
-        img: &DynamicImage,
-        media_settings: &MediaSettings,
+        img: DynamicImage,
+        media_settings: MediaSettings,
     ) -> Result<Self, PrintJobError> {
         let (width, height) = img.dimensions();
         // Always check width, for die-cut labels, also check height
@@ -49,12 +49,12 @@ impl RasterImage {
         }
         Ok(if media_settings.color {
             Self::TwoColor {
-                black_layer: mask_to_raster_layer(&create_mask(
-                    img,
+                black_layer: mask_to_raster_layer(create_mask(
+                    img.clone(),
                     media_settings.left_margin,
                     |r, g, b| r == g && r == b && r < 200,
                 )),
-                red_layer: mask_to_raster_layer(&create_mask(
+                red_layer: mask_to_raster_layer(create_mask(
                     img,
                     media_settings.left_margin,
                     |r, g, b| r > 100 && r > b && r > g,
@@ -62,7 +62,7 @@ impl RasterImage {
             }
         } else {
             Self::Monochrome {
-                black_layer: mask_to_raster_layer(&create_mask(
+                black_layer: mask_to_raster_layer(create_mask(
                     img,
                     media_settings.left_margin,
                     |r, g, b| !(r == b && r == g && r == 255),
@@ -72,26 +72,29 @@ impl RasterImage {
     }
 }
 
-fn mask_to_raster_layer(mask: &GrayImage) -> RasterLayer {
+fn mask_to_raster_layer(mask: GrayImage) -> RasterLayer {
     let mut res: Vec<[u8; 90]> = mask
-        .pixels()
-        .chunks(720)
-        .into_iter()
+        .into_raw()
+        .chunks_exact(720)
         .map(|line| {
-            line.chunks(8)
-                .into_iter()
-                .map(|chunk| {
+            let raster_line: [u8; 90] = line
+                .chunks_exact(8)
+                .map(|group_of_eight| {
                     let mut res = 0;
-                    chunk.enumerate().for_each(|(i, px)| {
-                        if px.0[0] == 0 {
-                            res |= 1 << (7 - i);
-                        }
-                    });
+                    group_of_eight
+                        .iter()
+                        .enumerate()
+                        .for_each(|(i, &pixel_byte)| {
+                            if pixel_byte == 0x0 {
+                                res |= 1 << (7 - i);
+                            }
+                        });
                     res
                 })
                 .collect_vec()
                 .try_into()
-                .unwrap()
+                .expect("This is infallible because we ensure exact sizes");
+            raster_line
         })
         .collect_vec();
     res.reverse();
@@ -99,18 +102,18 @@ fn mask_to_raster_layer(mask: &GrayImage) -> RasterLayer {
 }
 
 fn create_mask(
-    img: &DynamicImage,
+    img: DynamicImage,
     left_margin: u32,
     filter: fn(r: u8, g: u8, b: u8) -> bool,
 ) -> GrayImage {
     let (w, h) = img.dimensions();
     let mut filtered = RgbImage::new(w, h);
-    img.to_rgb8()
+    img.into_rgb8()
         .pixels()
         .zip(filtered.pixels_mut())
-        .for_each(|(ipx, fpx)| {
-            let &Rgb(chs @ [r, g, b]) = ipx;
-            fpx.0 = if filter(r, g, b) {
+        .for_each(|(orig_pixel, new_pixel)| {
+            let &Rgb(chs @ [r, g, b]) = orig_pixel;
+            new_pixel.0 = if filter(r, g, b) {
                 chs
             } else {
                 [255, 255, 255]

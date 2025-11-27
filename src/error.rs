@@ -25,7 +25,7 @@ use crate::status::ErrorFlags;
 /// let image = image::open("label.png")?;
 ///
 /// // This may fail with DimensionMismatch if image size doesn't match media
-/// let job = PrintJob::new(&image, Media::C62)?;
+/// let job = PrintJob::new(image, Media::C62)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -208,7 +208,7 @@ pub enum StatusError {
 /// # let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
 /// # let mut connection = UsbConnection::open(info)?;
 /// # let image = image::open("label.png")?;
-/// # let job = PrintJob::new(&image, Media::C62)?;
+/// # let job = PrintJob::new(image, Media::C62)?;
 /// // May fail with ProtocolError if printer is in wrong state
 /// connection.print(job)?;
 /// # Ok(())
@@ -266,7 +266,7 @@ pub enum ProtocolError {
 /// let mut connection = UsbConnection::open(info)?;
 ///
 /// let image = image::open("label.png")?;
-/// let job = PrintJob::new(&image, Media::C62)?;
+/// let job = PrintJob::new(image, Media::C62)?;
 ///
 /// // Can fail with USB or protocol errors
 /// connection.print(job)?;

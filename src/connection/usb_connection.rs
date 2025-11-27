@@ -106,7 +106,7 @@ impl UsbConnectionInfo {
 ///
 /// // Print a label
 /// let image = image::open("label.png")?;
-/// let job = PrintJob::new(&image, Media::C62)?;
+/// let job = PrintJob::new(image, Media::C62)?;
 /// connection.print(job)?;
 /// # Ok(())
 /// # }

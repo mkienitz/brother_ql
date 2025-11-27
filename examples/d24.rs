@@ -7,7 +7,7 @@ use brother_ql::{media::Media, printjob::PrintJob};
 pub fn main() -> Result<(), Box<dyn Error>> {
     // Make sure to use a compatible image (236x236 pixels wide)
     let img = image::open("d24.png")?;
-    let job = PrintJob::new(&img, Media::D24)?;
+    let job = PrintJob::new(img, Media::D24)?;
     // These are the defaults for the other options:
     // .page_count(1)
     // .high_dpi(false)
