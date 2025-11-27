@@ -81,43 +81,42 @@ pub(crate) enum RasterCommand {
 }
 
 impl From<RasterCommand> for Vec<u8> {
-    #[allow(clippy::too_many_lines, clippy::enum_glob_use)]
+    #[allow(clippy::too_many_lines)]
     fn from(value: RasterCommand) -> Self {
-        use RasterCommand::*;
+        use RasterCommand as RC;
         match value {
-            Invalidate => {
+            RC::Invalidate => {
                 vec![0u8; 400]
             }
-            StatusInformationRequest => {
+            RC::StatusInformationRequest => {
                 vec![0x1b, 0x69, 0x53]
             }
-            Initialize => {
+            RC::Initialize => {
                 vec![0x1b, 0x40]
             }
-            SpecifyMarginAmount { margin_size } => {
+            RC::SpecifyMarginAmount { margin_size } => {
                 let [n2, n1] = margin_size.to_be_bytes();
                 vec![0x1b, 0x69, 0x64, n1, n2]
             }
-            SwitchDynamicCommandMode { command_mode } => {
-                use DynamicCommandMode::*;
+            RC::SwitchDynamicCommandMode { command_mode } => {
                 let m = match command_mode {
                     // EscP => 0x00,
-                    Raster => 0x01,
+                    DynamicCommandMode::Raster => 0x01,
                     // PTouchTemplate => 0x03,
                 };
                 vec![0x1b, 0x69, 0x61, m]
             }
-            SwitchAutomaticStatusNotificationMode { notify } => {
+            RC::SwitchAutomaticStatusNotificationMode { notify } => {
                 let n = u8::from(!notify);
                 vec![0x1b, 0x69, 0x21, n]
             }
-            RasterGraphicsTransfer { mut data } => {
+            RC::RasterGraphicsTransfer { mut data } => {
                 #[allow(clippy::cast_possible_truncation)]
                 let mut res = vec![0x67, 0x00, data.len() as u8];
                 res.append(&mut data);
                 res
             }
-            TwoColorRasterGraphicsTransfer {
+            RC::TwoColorRasterGraphicsTransfer {
                 mut data,
                 color_power,
             } => {
@@ -130,23 +129,25 @@ impl From<RasterCommand> for Vec<u8> {
                 res.append(&mut data);
                 res
             }
-            // ZeroRasterGraphics => {
+            // NOTE: According to specification, the QL800 does not support this command
+            // Maybe investigate whether the whole series supports it or not.
+            // RC::ZeroRasterGraphics => {
             //     vec![0x5a]
             // }
-            Print => {
+            RC::Print => {
                 vec![0x0c]
             }
-            PrintWithFeed => {
+            RC::PrintWithFeed => {
                 vec![0x1a]
             }
-            SelectCompressionMode { tiff_compression } => {
+            RC::SelectCompressionMode { tiff_compression } => {
                 let cm = if tiff_compression { 0x02 } else { 0x00 };
                 vec![0x4d, cm]
             }
-            SpecifyPageNumber { cut_every } => {
+            RC::SpecifyPageNumber { cut_every } => {
                 vec![0x1b, 0x69, 0x41, cut_every]
             }
-            VariousMode(various_mode) => {
+            RC::VariousMode(various_mode) => {
                 let vm = if various_mode.auto_cut {
                     0b1 << (7 - 1)
                 } else {
@@ -154,7 +155,7 @@ impl From<RasterCommand> for Vec<u8> {
                 };
                 vec![0x1b, 0x69, 0x4d, vm]
             }
-            ExpandedMode {
+            RC::ExpandedMode {
                 two_color,
                 cut_at_end,
                 high_dpi,
@@ -171,7 +172,7 @@ impl From<RasterCommand> for Vec<u8> {
                 }
                 vec![0x1b, 0x69, 0x4b, flags]
             }
-            PrintInformation {
+            RC::PrintInformation {
                 media_settings,
                 quality_priority,
                 recovery_on,
