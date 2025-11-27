@@ -4,24 +4,21 @@ use brother_ql::{
     connection::{UsbConnection, UsbConnectionInfo},
     printer::PrinterModel,
 };
+use tracing_subscriber::{EnvFilter, field::MakeExt};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("Connecting to Brother QL-820NWB printer...");
+    // This example uses logging
+    tracing_subscriber::fmt()
+        .map_fmt_fields(|f| f.debug_alt())
+        .with_env_filter(EnvFilter::new("debug"))
+        .init();
 
     // Create connection info for QL-820NWB
     let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-
     // Open USB connection
     let mut connection = UsbConnection::open(info)?;
-    println!("Connected successfully!");
-
     // Read status from printer
-    println!("\nReading printer status...");
-    let status = connection.get_status()?;
-
-    // Full debug output
-    println!("\n=== Full Status (Debug) ===");
-    println!("{:#?}", status);
+    let _status = connection.get_status()?;
 
     Ok(())
 }

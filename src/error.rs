@@ -1,6 +1,8 @@
 //! This module provides crate-specific error types.
 use thiserror::Error;
 
+use crate::status::ErrorFlags;
+
 /// The crate-level error type
 #[derive(Error, Debug)]
 pub enum BQLError {
@@ -10,6 +12,8 @@ pub enum BQLError {
     /// Returned when there is an issue with a received status information
     #[error("Received status information is malformed: {0}")]
     MalformedStatus(String),
+    #[error("Received bad status during printing: {0:?}")]
+    PrintingError(ErrorFlags),
     /// USB device not found
     #[cfg(feature = "usb")]
     #[error("USB device not found (vendor: {vendor_id:#06x}, product: {product_id:#06x})")]

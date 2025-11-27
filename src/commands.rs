@@ -219,16 +219,23 @@ impl From<RasterCommand> for Vec<u8> {
 }
 
 #[derive(Default)]
-pub(crate) struct CommandBuilder {
+pub(crate) struct RasterCommands {
     commands: Vec<Vec<u8>>,
 }
 
-impl CommandBuilder {
+impl RasterCommands {
     pub fn add(&mut self, cmd: RasterCommand) {
         self.commands.push(cmd.into())
     }
 
     pub fn build(self) -> Vec<u8> {
         self.commands.concat()
+    }
+
+    pub fn create_preamble() -> Self {
+        let mut res = Self::default();
+        res.add(RasterCommand::Invalidate);
+        res.add(RasterCommand::Initialize);
+        res
     }
 }

@@ -1,12 +1,15 @@
 //! The core module for defining and compiling print data
+use std::fmt;
+
 use image::DynamicImage;
 
+use itertools::Itertools;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 
 use crate::{
     commands::{
-        ColorPower, CommandBuilder, DynamicCommandMode, RasterCommand, VariousModeSettings,
+        ColorPower, DynamicCommandMode, RasterCommand, RasterCommands, VariousModeSettings,
     },
     error::BQLError,
     media::{LengthInfo, Media, MediaSettings},
@@ -29,11 +32,12 @@ pub enum CutBehavior {
 }
 
 /// This struct defines the general settings for the generated print job.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, custom_debug::Debug)]
 pub struct PrintJob {
     /// The amount of replicas to print
     pub no_pages: u8,
     /// The image to print. The required type is [DynamicImage] from the [image] crate.
+    #[debug(with = debug_summarize_image)]
     pub image: DynamicImage,
     /// The paper type to use for the print job
     pub media: Media,
@@ -52,27 +56,32 @@ pub struct PrintJob {
     pub cut_behavior: CutBehavior,
 }
 
+fn debug_summarize_image(img: &DynamicImage, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "<DynamicImage {}x{} px>", img.width(), img.height())
+}
+
+pub(crate) struct PrintJobParts {
+    pub preamble: RasterCommands,
+    pub page_data: Vec<RasterCommands>,
+}
+
 impl PrintJob {
-    /// Create a compiled print job from the specified settings.
-    ///
-    /// The resulting [`Vec<u8>`] can be directly send to your printer's serial or network interface,
-    /// e.g. using `nc`.
-    pub fn compile(self) -> Result<Vec<u8>, BQLError> {
+    pub(crate) fn into_parts(self) -> Result<PrintJobParts, BQLError> {
         let media_settings = MediaSettings::new(&self.media);
         let height = self.image.height();
         let raster_image = RasterImage::new(self.image, &media_settings)?;
 
-        let mut commands = CommandBuilder::default();
+        let mut page_data = Vec::new();
 
-        use RasterCommand::*;
-        commands.add(Invalidate);
-        commands.add(Initialize);
         for page_no in 0..self.no_pages {
-            commands.add(SwitchDynamicCommandMode {
+            let mut page_commands = RasterCommands::default();
+            use RasterCommand::*;
+
+            page_commands.add(SwitchDynamicCommandMode {
                 command_mode: DynamicCommandMode::Raster,
             });
-            commands.add(SwitchAutomaticStatusNotificationMode { notify: false });
-            commands.add(PrintInformation {
+            page_commands.add(SwitchAutomaticStatusNotificationMode { notify: true });
+            page_commands.add(PrintInformation {
                 media_settings,
                 quality_priority: match raster_image {
                     RasterImage::Monochrome { .. } => self.quality_priority,
@@ -82,19 +91,19 @@ impl PrintJob {
                 no_lines: height,
                 first_page: page_no == 0,
             });
-            commands.add(VariousMode(VariousModeSettings {
+            page_commands.add(VariousMode(VariousModeSettings {
                 auto_cut: self.cut_behavior != CutBehavior::None,
             }));
             match self.cut_behavior {
                 CutBehavior::CutEvery(n) => {
-                    commands.add(SpecifyPageNumber { cut_every: n });
+                    page_commands.add(SpecifyPageNumber { cut_every: n });
                 }
                 CutBehavior::CutEach => {
-                    commands.add(SpecifyPageNumber { cut_every: 1 });
+                    page_commands.add(SpecifyPageNumber { cut_every: 1 });
                 }
                 _ => {}
             }
-            commands.add(ExpandedMode {
+            page_commands.add(ExpandedMode {
                 two_color: media_settings.color,
                 cut_at_end: match self.cut_behavior {
                     CutBehavior::CutAtEnd => true,
@@ -103,19 +112,19 @@ impl PrintJob {
                 },
                 high_dpi: self.high_dpi,
             });
-            commands.add(SpecifyMarginAmount {
+            page_commands.add(SpecifyMarginAmount {
                 margin_size: match media_settings.length_info {
                     LengthInfo::Endless => 35,
                     LengthInfo::Fixed { .. } => 0,
                 },
             });
-            commands.add(SelectCompressionMode {
+            page_commands.add(SelectCompressionMode {
                 // TODO: Add support for compression
                 tiff_compression: false,
             });
             match &raster_image {
                 RasterImage::Monochrome { black_layer } => black_layer.iter().for_each(|line| {
-                    commands.add(RasterGraphicsTransfer {
+                    page_commands.add(RasterGraphicsTransfer {
                         data: line.to_vec(),
                     })
                 }),
@@ -126,22 +135,42 @@ impl PrintJob {
                     .iter()
                     .zip(red_layer.iter())
                     .for_each(|(black_line, red_line)| {
-                        commands.add(TwoColorRasterGraphicsTransfer {
+                        page_commands.add(TwoColorRasterGraphicsTransfer {
                             data: black_line.to_vec(),
                             color_power: ColorPower::HighEnergy,
                         });
-                        commands.add(TwoColorRasterGraphicsTransfer {
+                        page_commands.add(TwoColorRasterGraphicsTransfer {
                             data: red_line.to_vec(),
                             color_power: ColorPower::LowEnergy,
                         })
                     }),
             };
             if page_no == self.no_pages - 1 {
-                commands.add(PrintWithFeed)
+                page_commands.add(PrintWithFeed)
             } else {
-                commands.add(Print)
+                page_commands.add(Print)
             };
+            page_data.push(page_commands);
         }
-        Ok(commands.build())
+
+        Ok(PrintJobParts {
+            preamble: RasterCommands::create_preamble(),
+            page_data,
+        })
+    }
+
+    /// Create a compiled print job from the specified settings.
+    ///
+    /// The resulting [`Vec<u8>`] can be directly send to your printer's serial or network interface,
+    /// e.g. using `nc`.
+    pub fn compile(self) -> Result<Vec<u8>, BQLError> {
+        let parts = self.into_parts()?;
+        let mut bytes = Vec::new();
+        bytes.append(&mut parts.preamble.build());
+        parts
+            .page_data
+            .into_iter()
+            .for_each(|p| bytes.append(&mut p.build()));
+        Ok(bytes)
     }
 }

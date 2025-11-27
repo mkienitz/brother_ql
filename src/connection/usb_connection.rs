@@ -2,10 +2,14 @@
 use std::time::Duration;
 
 use rusb::{Context, Device, DeviceHandle, UsbContext};
+use tracing::{debug, info};
 
 use crate::{
-    commands::RasterCommand, error::BQLError, printer::PrinterModel, printjob::PrintJob,
-    status::StatusInformation,
+    commands::{RasterCommand, RasterCommands},
+    error::BQLError,
+    printer::PrinterModel,
+    printjob::PrintJob,
+    status::{Phase, StatusInformation, StatusType},
 };
 
 use super::PrinterConnection;
@@ -53,6 +57,7 @@ pub struct UsbConnection {
 impl UsbConnection {
     /// Open a USB connection to a Brother QL printer
     pub fn open(info: UsbConnectionInfo) -> Result<Self, BQLError> {
+        debug!("Opening USB Connection to the printer...");
         let context = Context::new()?;
         let device = Self::find_device(&context, info.vendor_id, info.product_id)?;
         let handle = device.open()?;
@@ -71,6 +76,7 @@ impl UsbConnection {
             return Err(e.into());
         }
 
+        debug!("Successfully established USB Connection!");
         Ok(Self {
             handle,
             interface: info.interface,
@@ -107,7 +113,7 @@ impl UsbConnection {
     }
 
     /// Write data to the printer
-    fn write(&mut self, data: &[u8]) -> Result<(), BQLError> {
+    fn write(&self, data: &[u8]) -> Result<(), BQLError> {
         let bytes_written = self
             .handle
             .write_bulk(self.endpoint_out, data, self.timeout)?;
@@ -120,22 +126,28 @@ impl UsbConnection {
         Ok(())
     }
 
+    fn send_status_request(&self) -> Result<(), BQLError> {
+        debug!("Sending status information request to the printer...");
+        let status_request_bytes: Vec<u8> = RasterCommand::StatusInformationRequest.into();
+        self.write(&status_request_bytes)?;
+        Ok(())
+    }
+
     /// Read status information from the printer
     pub fn get_status(&mut self) -> Result<StatusInformation, BQLError> {
-        let invalidate_bytes: Vec<u8> = RasterCommand::Invalidate.into();
-        let init_bytes: Vec<u8> = RasterCommand::Initialize.into();
-        self.write(&invalidate_bytes)?;
-        self.write(&init_bytes)?;
-        self.read_status()
+        let preamble_bytes = RasterCommands::create_preamble().build();
+        self.write(&preamble_bytes)?;
+        self.send_status_request()?;
+        self.read_status_reply()
     }
 
     /// Read status information but without sending init/invalidate bytes
-    fn read_status(&mut self) -> Result<StatusInformation, BQLError> {
-        let status_request_bytes: Vec<u8> = RasterCommand::StatusInformationRequest.into();
-        self.write(&status_request_bytes)?;
+    fn read_status_reply(&mut self) -> Result<StatusInformation, BQLError> {
         let mut read_buffer = [0u8; 32];
         self.read_exact(&mut read_buffer)?;
-        StatusInformation::try_from(&read_buffer[..])
+        let status = StatusInformation::try_from(&read_buffer[..])?;
+        debug!(?status, "Printer sent status information");
+        Ok(status)
     }
 
     /// Read raw data from the printer
@@ -172,17 +184,50 @@ impl UsbConnection {
         }
         Ok(())
     }
-
-    /// Print data and wait for completion
-    pub fn print_and_wait(&mut self, data: &[u8]) -> Result<(), BQLError> {
-        // TODO: Implement print job execution
-        Ok(())
-    }
 }
 
 impl PrinterConnection for UsbConnection {
-    fn print(&mut self, job: &PrintJob) -> Result<(), BQLError> {
-        todo!()
+    fn print(&mut self, job: PrintJob) -> Result<(), BQLError> {
+        info!(?job, "Starting print job...");
+        let no_pages = job.no_pages;
+        let parts = job.into_parts()?;
+        // Send preamble
+        self.write(&parts.preamble.build())?;
+        // Send status information request
+        let mut status = self.get_status()?;
+        match (status.has_errors(), status.status_type(), status.phase()) {
+            (false, StatusType::StatusRequestReply, Phase::Receiving) => {}
+            _ => return Err(BQLError::PrintingError(status.errors())),
+        }
+        for (page_no, page) in parts.page_data.into_iter().enumerate() {
+            debug!(
+                "Sending print data for page {}/{}...",
+                page_no + 1,
+                no_pages
+            );
+            self.write(&page.build())?;
+            // Printer should change phase to "Printing"
+            status = self.read_status_reply()?;
+            match (status.has_errors(), status.status_type(), status.phase()) {
+                (false, StatusType::PhaseChange, Phase::Printing) => {}
+                _ => return Err(BQLError::PrintingError(status.errors())),
+            }
+            // Printer should signal print completion
+            status = self.read_status_reply()?;
+            match (status.has_errors(), status.status_type(), status.phase()) {
+                (false, StatusType::PrintingCompleted, Phase::Printing) => {}
+                _ => return Err(BQLError::PrintingError(status.errors())),
+            }
+            // Printer should change phase to "Receiving" again
+            status = self.read_status_reply()?;
+            match (status.has_errors(), status.status_type(), status.phase()) {
+                (false, StatusType::PhaseChange, Phase::Receiving) => {}
+                _ => return Err(BQLError::PrintingError(status.errors())),
+            }
+            info!("Page {}/{} printed successfully!", page_no + 1, no_pages);
+        }
+        info!("Print job completed successfully!");
+        Ok(())
     }
 }
 

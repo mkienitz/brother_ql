@@ -14,13 +14,18 @@ exclude = [
 
 [dependencies]
 bitflags = "2.10.0"
+custom_debug = "0.6.2"
 image = "0.25.2"
 itertools = { version = "0.14.0", features = ["use_alloc"] }
 rusb = { version = "0.9", optional = true }
 serde = { version = "1.0.210", features = ["derive"], optional = true }
 thiserror = "2.0.17"
+tracing = "0.1.41"
 
 [features]
 default = ["usb"]
 serde = ["dep:serde"]
 usb = ["dep:rusb"]
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3.20", features = ["tracing", "env-filter"] }
