@@ -30,4 +30,10 @@ pub enum BQLError {
     #[cfg(feature = "usb")]
     #[error("Incomplete USB write: wrote {written} of {expected} bytes")]
     IncompleteWrite { written: usize, expected: usize },
+    /// Kernel operation failed
+    #[error("Kernel IO error: {0}")]
+    KernelIOError(#[from] std::io::Error),
+    /// Kernel operation timeout
+    #[error("Kernel IO operation timed out")]
+    KernelIOTimeout,
 }

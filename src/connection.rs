@@ -3,6 +3,7 @@
 //! This module provides connection abstractions for communicating with Brother QL printers.
 //! Currently supports USB connections, with network connections planned for the future.
 
+mod kernel_connection;
 mod printer_connection;
 mod usb_connection;
 
@@ -11,3 +12,6 @@ pub use printer_connection::PrinterConnection;
 
 // Re-export USB types
 pub use usb_connection::{UsbConnection, UsbConnectionInfo};
+
+// Re-export kernel types
+pub use kernel_connection::KernelConnection;
