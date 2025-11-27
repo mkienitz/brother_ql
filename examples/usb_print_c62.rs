@@ -1,4 +1,4 @@
-#![allow(missing_docs, clippy::redundant_closure_for_method_calls)]
+#![allow(missing_docs)]
 
 use std::error::Error;
 
@@ -13,10 +13,9 @@ use tracing_subscriber::{EnvFilter, field::MakeExt};
 fn main() -> Result<(), Box<dyn Error>> {
     // This example uses pretty logging
     tracing_subscriber::fmt()
-        .map_fmt_fields(|f| f.debug_alt())
+        .map_fmt_fields(MakeExt::debug_alt)
         .with_env_filter(EnvFilter::new("debug"))
         .init();
-
     // Create connection info for QL-820NWB
     let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
     // Open USB connection
@@ -33,6 +32,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     // .cut_behavior(CutBehavior::CutEach)?; // default for continuous media
     // Finally, print
     connection.print(job)?;
-
     Ok(())
 }
