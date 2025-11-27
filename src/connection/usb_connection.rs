@@ -15,40 +15,20 @@ use crate::{
 use super::PrinterConnection;
 
 /// USB connection parameters for a Brother QL printer
-///
-/// Contains all the USB-specific information needed to establish a connection
-/// to a Brother QL label printer. For most use cases, use [`UsbConnectionInfo::from_model`]
-/// to get the correct parameters for your printer model.
-///
-/// # Example
-/// ```no_run
-/// # use brother_ql::{
-/// #     connection::{UsbConnection, UsbConnectionInfo},
-/// #     printer::PrinterModel,
-/// # };
-/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// // Create connection info for a specific printer model
-/// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-///
-/// // Open the connection
-/// let connection = UsbConnection::open(info)?;
-/// # Ok(())
-/// # }
-/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UsbConnectionInfo {
     /// USB vendor ID (typically 0x04f9 for Brother Industries, Ltd)
-    pub vendor_id: u16,
+    pub(crate) vendor_id: u16,
     /// USB product ID (specific to each printer model)
-    pub product_id: u16,
+    pub(crate) product_id: u16,
     /// USB interface number (typically 0 for printers)
-    pub interface: u8,
+    pub(crate) interface: u8,
     /// USB endpoint address for writing data to the printer (OUT endpoint)
-    pub endpoint_out: u8,
+    pub(crate) endpoint_out: u8,
     /// USB endpoint address for reading data from the printer (IN endpoint)
-    pub endpoint_in: u8,
+    pub(crate) endpoint_in: u8,
     /// Timeout for USB operations
-    pub timeout: Duration,
+    pub(crate) timeout: Duration,
 }
 
 impl UsbConnectionInfo {
@@ -67,50 +47,21 @@ impl UsbConnectionInfo {
     #[must_use]
     pub const fn from_model(model: PrinterModel) -> Self {
         Self {
-            vendor_id: model.vendor_id(),
-            product_id: model.product_id(),
-            interface: model.interface(),
-            endpoint_out: model.endpoint_out(),
-            endpoint_in: model.endpoint_in(),
-            timeout: model.default_timeout(),
+            vendor_id: 0x04f9, // Brother
+            product_id: match model {
+                PrinterModel::QL800 => 0x209b,
+                PrinterModel::QL810W => 0x209c,
+                PrinterModel::QL820NWB => 0x209d,
+            },
+            interface: 0,
+            endpoint_out: 0x02,
+            endpoint_in: 0x81,
+            timeout: Duration::from_millis(5000),
         }
     }
 }
 
 /// USB connection to a Brother QL printer
-///
-/// Manages a USB connection to a Brother QL label printer. The connection automatically
-/// handles kernel driver detachment/reattachment and interface cleanup.
-///
-/// # Connection Lifecycle
-/// - **Opening**: Claims the USB interface and configures endpoints
-/// - **During use**: Sends commands and receives status updates
-/// - **Closing**: Automatically releases the interface when dropped
-///
-/// # Example
-/// ```no_run
-/// # use brother_ql::{
-/// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
-/// #     media::Media,
-/// #     printer::PrinterModel,
-/// #     printjob::PrintJob,
-/// # };
-/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// // Open connection
-/// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-/// let mut connection = UsbConnection::open(info)?;
-///
-/// // Check printer status
-/// let status = connection.get_status()?;
-/// println!("Printer model: {:?}", status.model);
-///
-/// // Print a label
-/// let image = image::open("label.png")?;
-/// let job = PrintJob::new(image, Media::C62)?;
-/// connection.print(job)?;
-/// # Ok(())
-/// # }
-/// ```
 pub struct UsbConnection {
     handle: DeviceHandle<Context>,
     interface: u8,
@@ -196,41 +147,13 @@ impl UsbConnection {
         })
     }
 
-    /// Set the timeout for USB operations
-    ///
-    /// Changes the timeout used for USB read and write operations.
-    /// The default timeout is determined by [`PrinterModel::default_timeout`].
-    ///
-    /// # Example
-    /// ```no_run
-    /// # use std::time::Duration;
-    /// # use brother_ql::{
-    /// #     connection::{UsbConnection, UsbConnectionInfo},
-    /// #     printer::PrinterModel,
-    /// # };
-    /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-    /// let mut connection = UsbConnection::open(info)?;
-    ///
-    /// // Increase timeout for slower operations
-    /// connection.set_timeout(Duration::from_secs(10));
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn set_timeout(&mut self, timeout: Duration) {
-        self.timeout = timeout;
-    }
-
     /// Write data to the printer
     fn write(&self, data: &[u8]) -> Result<(), UsbError> {
         let bytes_written = self
             .handle
             .write_bulk(self.endpoint_out, data, self.timeout)?;
         if bytes_written != data.len() {
-            return Err(UsbError::IncompleteWrite {
-                written: bytes_written,
-                expected: data.len(),
-            });
+            return Err(UsbError::IncompleteWrite);
         }
         Ok(())
     }
@@ -244,7 +167,7 @@ impl UsbConnection {
 
     /// Read status information from the printer
     ///
-    /// Sends a status request to the printer and returns detailed information about:
+    /// Sends a status request to the printer and returns detailed [`StatusInformation`] about:
     /// - Printer model
     /// - Current errors (if any)
     /// - Media type and dimensions
@@ -306,10 +229,8 @@ impl UsbConnection {
     /// Read until the provided buffer is full
     fn read_exact(&mut self, buffer: &mut [u8]) -> Result<(), StatusError> {
         // 3000ms / 50ms = 60 retries
-        const MAX_WAITING_TIME_MS: u32 = 3000;
-        const RETRY_DELAY_MS: u32 = 50;
-        const MAX_RETRIES: u32 = MAX_WAITING_TIME_MS / RETRY_DELAY_MS;
-        const RETRY_DELAY: Duration = Duration::from_millis(RETRY_DELAY_MS as u64);
+        const MAX_RETRIES: u8 = 60;
+        const RETRY_DELAY: Duration = Duration::from_millis(50);
 
         let mut total_read = 0;
         let mut retries = 0;
@@ -319,10 +240,7 @@ impl UsbConnection {
                 Ok(0) => {
                     retries += 1;
                     if retries > MAX_RETRIES {
-                        return Err(StatusError::NoResponse {
-                            attempts: MAX_RETRIES,
-                            duration_ms: u64::from(MAX_WAITING_TIME_MS),
-                        });
+                        return Err(StatusError::NoResponse);
                     }
                     // No data available yet, wait and retry
                     std::thread::sleep(RETRY_DELAY);

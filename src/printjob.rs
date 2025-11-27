@@ -33,26 +33,6 @@ pub enum CutBehavior {
 }
 
 /// Print job configuration with builder pattern
-///
-/// Create a print job using [`PrintJob::new`] with sensible defaults,
-/// then customize settings using builder methods before compiling or printing.
-///
-/// # Example
-/// ```no_run
-/// # use brother_ql::printjob::{PrintJob, CutBehavior};
-/// # use brother_ql::media::Media;
-/// # use image::DynamicImage;
-/// # fn example(image: DynamicImage) -> Result<(), brother_ql::error::PrintJobError> {
-/// let job = PrintJob::new(image, Media::C62)?
-///     .page_count(3)
-///     .high_dpi(false)
-///     .cut_behavior(CutBehavior::CutEach);
-///
-/// let bytes = job.compile();
-/// // Send bytes to printer...
-/// # Ok(())
-/// # }
-/// ```
 #[derive(Clone, PartialEq, Debug)]
 pub struct PrintJob {
     /// The amount of labels to print

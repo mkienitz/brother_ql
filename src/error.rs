@@ -13,22 +13,9 @@ use thiserror::Error;
 
 use crate::status::ErrorFlags;
 
-/// Errors related to print job validation and compatibility
+/// Errors related to print job validation
 ///
-/// These errors occur when creating or compiling a print job with invalid
-/// or incompatible parameters.
-///
-/// # Example
-/// ```no_run
-/// # use brother_ql::{media::Media, printjob::PrintJob, error::PrintJobError};
-/// # fn example() -> Result<(), PrintJobError> {
-/// let image = image::open("label.png")?;
-///
-/// // This may fail with DimensionMismatch if image size doesn't match media
-/// let job = PrintJob::new(image, Media::C62)?;
-/// # Ok(())
-/// # }
-/// ```
+/// Returned by [`PrintJob::new`][crate::printjob::PrintJob::new] when image dimensions don't match media requirements.
 #[derive(Error, Debug)]
 pub enum PrintJobError {
     /// Image dimensions don't match the selected media type
@@ -55,34 +42,10 @@ pub enum PrintJobError {
     ImageError(#[from] image::ImageError),
 }
 
-/// USB-specific connection errors
-///
-/// These errors occur during USB communication with the printer.
-///
-/// # Example
-/// ```no_run
-/// # use brother_ql::{
-/// #     connection::{UsbConnection, UsbConnectionInfo},
-/// #     printer::PrinterModel,
-/// #     error::UsbError,
-/// # };
-/// # fn example() -> Result<(), UsbError> {
-/// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-///
-/// // May fail with UsbError::DeviceNotFound if printer not connected
-/// let connection = UsbConnection::open(info)?;
-/// # Ok(())
-/// # }
-/// ```
+/// USB communication errors
 #[derive(Error, Debug)]
 pub enum UsbError {
     /// USB device not found with the specified vendor and product ID
-    ///
-    /// This typically means:
-    /// - The printer is not connected
-    /// - The printer is connected but not powered on
-    /// - Wrong printer model specified
-    /// - USB permissions issue (may need udev rules on Linux)
     #[error("USB device not found (vendor: {vendor_id:#06x}, product: {product_id:#06x})")]
     DeviceNotFound {
         /// USB vendor ID (typically 0x04f9 for Brother)
@@ -93,15 +56,9 @@ pub enum UsbError {
 
     /// Failed to write all data to the USB device
     ///
-    /// This is rare but can occur if the USB connection is interrupted
-    /// during a write operation.
-    #[error("Incomplete USB write: wrote {written} of {expected} bytes")]
-    IncompleteWrite {
-        /// Number of bytes actually written
-        written: usize,
-        /// Number of bytes expected to write
-        expected: usize,
-    },
+    /// This should never occur, but if it does, please report it as a GitHub issue
+    #[error("Incomplete USB write occured! Please report this issue!")]
+    IncompleteWrite,
 
     /// USB communication error from the rusb library
     ///
@@ -118,25 +75,9 @@ pub enum UsbError {
     Rusb(#[from] rusb::Error),
 }
 
-/// Errors that occur when parsing status information from the printer
+/// Status parsing errors
 ///
-/// These errors indicate that the raw bytes received from the printer
-/// could not be interpreted as valid status information.
-///
-/// # Example
-/// ```no_run
-/// # use brother_ql::{
-/// #     connection::{UsbConnection, UsbConnectionInfo},
-/// #     printer::PrinterModel,
-/// # };
-/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// # let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-/// # let mut connection = UsbConnection::open(info)?;
-/// // May fail if status bytes are malformed
-/// let status = connection.get_status()?;
-/// # Ok(())
-/// # }
-/// ```
+/// Returned when status bytes from the printer are malformed.
 #[derive(Error, Debug, Clone)]
 #[error("Failed to parse status information: {reason}")]
 pub struct StatusParsingError {
@@ -144,95 +85,33 @@ pub struct StatusParsingError {
     pub reason: String,
 }
 
-/// Errors that can occur when reading status from the printer
+/// Status reading errors
 ///
-/// These errors encompass all failure modes during status operations, including
-/// USB communication errors, timeout waiting for printer response, and parsing
-/// malformed status bytes.
-///
-/// # Example
-/// ```no_run
-/// # use brother_ql::{
-/// #     connection::{UsbConnection, UsbConnectionInfo},
-/// #     printer::PrinterModel,
-/// # };
-/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-/// let mut connection = UsbConnection::open(info)?;
-///
-/// // May fail with USB, NoResponse, or Parsing errors
-/// let status = connection.get_status()?;
-/// # Ok(())
-/// # }
-/// ```
+/// Returned by [`get_status`](crate::connection::UsbConnection::get_status).
 #[derive(Error, Debug)]
 pub enum StatusError {
     /// USB communication error
     #[error(transparent)]
     Usb(#[from] UsbError),
 
-    /// Printer did not respond with expected data
-    ///
-    /// After multiple retry attempts, the printer failed to send data.
-    /// This is distinct from USB-level timeouts - the USB communication works,
-    /// but the printer isn't sending data.
-    #[error(
-        "Printer did not respond with expected data after {attempts} attempts over {duration_ms}ms"
-    )]
-    NoResponse {
-        /// Number of retry attempts made
-        attempts: u32,
-        /// Total time spent waiting in milliseconds
-        duration_ms: u64,
-    },
-
+    /// Printer did not respond after retries
+    #[error("Printer did not respond with a status information reply after being queried")]
+    NoResponse,
     /// Status parsing error (malformed status bytes)
     #[error(transparent)]
     Parsing(#[from] StatusParsingError),
 }
 
-/// Protocol flow errors during printer communication
+/// Protocol flow errors during printing
 ///
-/// These errors occur when the printer sends valid status information,
-/// but at the wrong time or in an unexpected state during the print protocol.
-///
-/// # Example
-/// ```no_run
-/// # use brother_ql::{
-/// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
-/// #     media::Media,
-/// #     printer::PrinterModel,
-/// #     printjob::PrintJob,
-/// # };
-/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// # let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-/// # let mut connection = UsbConnection::open(info)?;
-/// # let image = image::open("label.png")?;
-/// # let job = PrintJob::new(image, Media::C62)?;
-/// // May fail with ProtocolError if printer is in wrong state
-/// connection.print(job)?;
-/// # Ok(())
-/// # }
-/// ```
+/// Returned when the printer sends unexpected status or reports an error condition.
 #[derive(Error, Debug, Clone)]
 pub enum ProtocolError {
-    /// Printer reported one or more error conditions
-    ///
-    /// The printer is in an error state and cannot print. Common errors include:
-    /// - No media loaded
-    /// - Cover open
-    /// - Cutter jam
-    /// - Media needs replacement
-    ///
-    /// Check the [`ErrorFlags`] to see which specific errors are active.
+    /// Printer reported error conditions (see [`ErrorFlags`])
     #[error("Printer reported errors: {0:?}")]
     PrinterError(ErrorFlags),
 
-    /// Printer sent unexpected status type or phase
-    ///
-    /// During printing, the printer should transition through specific states.
-    /// This error indicates the printer sent a status update that doesn't match
-    /// what was expected at this point in the protocol.
+    /// Printer sent unexpected status
     #[error(
         "Unexpected printer status: expected {expected_type:?}/{expected_phase:?}, got {actual_type:?}/{actual_phase:?}"
     )]
@@ -248,31 +127,9 @@ pub enum ProtocolError {
     },
 }
 
-/// Errors that can occur during printing
+/// Printing errors
 ///
-/// This encompasses all possible errors during a print operation, including
-/// USB communication issues and printer protocol errors.
-///
-/// # Example
-/// ```no_run
-/// # use brother_ql::{
-/// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
-/// #     media::Media,
-/// #     printer::PrinterModel,
-/// #     printjob::PrintJob,
-/// # };
-/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-/// let mut connection = UsbConnection::open(info)?;
-///
-/// let image = image::open("label.png")?;
-/// let job = PrintJob::new(image, Media::C62)?;
-///
-/// // Can fail with USB or protocol errors
-/// connection.print(job)?;
-/// # Ok(())
-/// # }
-/// ```
+/// Returned by [`print`](crate::connection::PrinterConnection::print).
 #[derive(Error, Debug)]
 pub enum PrintError {
     /// USB communication error

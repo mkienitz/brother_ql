@@ -22,6 +22,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // .cut_behavior(CutBehavior::CutEach)?; // default for continuous media
     let data = job.compile();
     let mut file = File::create("c62mm.bin")?;
-    let _ = file.write(&data);
+    file.write_all(&data)?;
     Ok(())
 }

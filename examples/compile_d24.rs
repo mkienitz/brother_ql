@@ -22,6 +22,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // .cut_behavior(CutBehavior::CutAtEnd)?; // default for die-cut media
     let data = job.compile();
     let mut file = File::create("d24.bin")?;
-    let _ = file.write(&data);
+    file.write_all(&data)?;
     Ok(())
 }

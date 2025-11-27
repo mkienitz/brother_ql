@@ -1,7 +1,5 @@
 //! Printer model definitions and USB configuration
 
-use std::time::Duration;
-
 use crate::error::StatusParsingError;
 
 /// Brother QL printer model
@@ -13,56 +11,6 @@ pub enum PrinterModel {
     QL810W,
     /// QL-820NWB
     QL820NWB,
-}
-
-impl PrinterModel {
-    /// Get the USB product ID for this printer model
-    #[must_use]
-    pub const fn product_id(self) -> u16 {
-        match self {
-            Self::QL800 => 0x209b,
-            Self::QL810W => 0x209c,
-            Self::QL820NWB => 0x209d,
-        }
-    }
-
-    /// Get the USB vendor ID
-    #[must_use]
-    pub const fn vendor_id(self) -> u16 {
-        0x04f9 // Brother
-    }
-
-    /// Get the USB interface number
-    ///
-    /// Uses interface 0, alternate setting 0 (the printer interface).
-    #[must_use]
-    pub const fn interface(self) -> u8 {
-        0
-    }
-
-    /// Get the USB OUT endpoint address for writing to the printer
-    ///
-    /// Endpoint 2 OUT (Bulk transfer, 64 byte max packet size).
-    /// Verified from lsusb output.
-    #[must_use]
-    pub const fn endpoint_out(self) -> u8 {
-        0x02
-    }
-
-    /// Get the USB IN endpoint address for reading from the printer
-    ///
-    /// Endpoint 1 IN (Bulk transfer, 64 byte max packet size).
-    /// Verified from lsusb output.
-    #[must_use]
-    pub const fn endpoint_in(self) -> u8 {
-        0x81
-    }
-
-    /// Get the default timeout for USB operations
-    #[must_use]
-    pub const fn default_timeout(self) -> Duration {
-        Duration::from_millis(5000)
-    }
 }
 
 impl TryFrom<u8> for PrinterModel {
