@@ -1,5 +1,5 @@
 use image::{
-    DynamicImage, GenericImageView, GrayImage, ImageBuffer, Rgb, RgbImage,
+    DynamicImage, GenericImageView, GrayImage, ImageBuffer, Rgb,
     imageops::{self, BiLevel},
 };
 use itertools::Itertools;
@@ -104,23 +104,19 @@ fn mask_to_raster_layer(mask: GrayImage) -> RasterLayer {
 fn create_mask(
     img: DynamicImage,
     left_margin: u32,
-    filter: fn(r: u8, g: u8, b: u8) -> bool,
+    print_predicate: fn(r: u8, g: u8, b: u8) -> bool,
 ) -> GrayImage {
-    let (w, h) = img.dimensions();
-    let mut filtered = RgbImage::new(w, h);
-    img.into_rgb8()
-        .pixels()
-        .zip(filtered.pixels_mut())
-        .for_each(|(orig_pixel, new_pixel)| {
-            let &Rgb(chs @ [r, g, b]) = orig_pixel;
-            new_pixel.0 = if filter(r, g, b) {
-                chs
-            } else {
-                [255, 255, 255]
-            };
-        });
-    let mut mask = imageops::grayscale(&filtered);
+    let mut rgb_image = img.into_rgb8();
+    rgb_image.pixels_mut().for_each(|pixel| {
+        let &mut Rgb([r, g, b]) = pixel;
+        // Turn pixel white unless print predicate matches
+        if !print_predicate(r, g, b) {
+            *pixel = Rgb([255, 255, 255]);
+        }
+    });
+    let mut mask = imageops::grayscale(&rgb_image);
     image::imageops::dither(&mut mask, &BiLevel);
+    let (w, h) = rgb_image.dimensions();
     let right_margin = 720 - left_margin - w;
     let extended = ImageBuffer::from_fn(720, h, |x, y| {
         if (right_margin..(right_margin + w)).contains(&x) {
