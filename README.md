@@ -1,40 +1,67 @@
 # brother_ql
 
 This is a crate to convert image data to the Raster Command binary data understood by the
-Brother QL-820NWB label printer.
+Brother QL-8xx family of label printers.
 
-* It is still very much work-in-progress so some bugs might still exist.
-* Currently, only the 820NWB printer is supported but other printers should be relatively easy to
-add - especially the 8xx sibling models.
-* The two-color (red and black) printing mode is supported
-* For details, check the [official Raster Command Reference](https://download.brother.com/welcome/docp100278/cv_ql800_eng_raster_101.pdf)
+## Features
 
-Here is a small example on how to use it:
+- **📦 Compile to binary data** - Convert images to raster command bytes that can be sent to the printer via USB, network, or saved to files
+- **🔌 Direct USB printing** - Print labels directly via USB connection with full status monitoring
+- **📊 Status information** - Read detailed printer status including errors, media type, and operational phase
+- **🎨 Two-color printing** - Support for red and black printing on compatible printer models
+- **🏷️ Multiple media types** - Support for continuous and die-cut labels in various widths
+
+## Supported Printers
+
+Currently, the 8xx family of label printers is supported (QL-800, QL-810W, QL-820NWB). Other printers should be relatively easy to add.
+
+**Note:** This crate is still work-in-progress and some bugs might still exist.
+
+For more details, check the [official Raster Command Reference](https://download.brother.com/welcome/docp100278/cv_ql800_eng_raster_101.pdf).
+
+## Examples
+
+### Printing via USB connection
 
 ```rust
-use std::{error::Error, fs::File, io::Write};
-
 use brother_ql::{
-    printjob::{CutBehavior, PrintJob},
-    media::Media,
+    connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
+    media::Media, printer::PrinterModel, printjob::PrintJob,
 };
 
-pub fn main() -> Result<(), Box<dyn Error>> {
-    let img = image::open("test.png")?;
-    let job = PrintJob {
-        no_pages: 1,
-        image: img,
-        media: Media::C62,       // use 62mm wide continuous tape
-        high_dpi: false,
-        compressed: false,       // unsupported
-        quality_priority: false, // no effect on two-color printing
-        cut_behaviour: CutBehavior::CutAtEnd,
-    };
-    let data = job.compile()?;
-    let mut file = File::create("test.bin")?;
-    let _ = file.write(&data);
-    // We can now send this binary directly to the printer, for example using `nc`
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create connection info for QL-820NWB
+    let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+    // Open USB connection
+    let mut connection = UsbConnection::open(info)?;
+    // Read status from printer
+    let _status = connection.get_status()?;
+    // Create a print job with more than one page
+    let img = image::open("c62.png")?;
+    let job = PrintJob::new(img, Media::C62)?.page_count(2);
+    // These are the defaults for the other options:
+    // .high_dpi(false)
+    // .compressed(false)
+    // .quality_priority(true)
+    // .cut_behavior(CutBehavior::CutEach)?; // default for continuous media
+    // Finally, print
+    connection.print(job)?;
     Ok(())
 }
+```
 
+### Compiling and saving a print job
+
+```rust
+use std::{fs::File, io::Write};
+use brother_ql::{media::Media, printjob::PrintJob};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let img = image::open("c62.png")?;
+    let job = PrintJob::new(img, Media::C62)?;
+    let data = job.compile();
+    let mut file = File::create("c62mm.bin")?;
+    file.write_all(&data)?;
+    Ok(())
+}
 ```

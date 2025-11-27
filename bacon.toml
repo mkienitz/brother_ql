@@ -1,0 +1,6 @@
+[jobs.clippy]
+command = [
+    "cargo", "clippy",
+    "--all-targets",
+    "--all-features",
+]

@@ -43,6 +43,7 @@
         {
           pkgs,
           config,
+          lib,
           ...
         }:
         let
@@ -66,6 +67,18 @@
               pkgs.cargo-watch
               pkgs.cargo-modules
               pkgs.cargo-release
+              pkgs.bacon
+            ]
+            ++ (lib.optionals pkgs.stdenv.isDarwin [
+              pkgs.libiconv
+            ]);
+            env = [
+              {
+                # On darwin for example enables finding of libiconv
+                name = "LIBRARY_PATH";
+                # append in case it needs to be modified
+                eval = "$DEVSHELL_DIR/lib";
+              }
             ];
             devshell.startup.pre-commit.text = config.pre-commit.installationScript;
           };

@@ -1,45 +1,66 @@
 //! This is a crate to convert image data to the Raster Command binary data understood by the
-//! Brother QL-820NWB label printer.
+//! Brother QL-8xx family of label printers.
 //!
 //! * It is still very much work-in-progress so some bugs might still exist.
-//! * Currently, only the 820NWB printer is supported but other printers should be relatively easy to
-//!   add - especially the 8xx sibling models.
-//! * The two-color (red and black) printing mode is supported
-//! * The image is represented by [DynamicImage][image::DynamicImage] from the [image] crate
-//! * For details, check the [official Raster Command Reference](https://download.brother.com/welcome/docp100278/cv_ql800_eng_raster_101.pdf)
+//! * Currently, only the 8xx family of label printers is supported but other printers should be relatively easy to add
+//! * The two-color (red and black) printing mode is supported when using a printer with this
+//!   capability
+//! * The image is represented by [`DynamicImage`][image::DynamicImage] from the [image] crate
+//! * For more details, check the [official Raster Command Reference](https://download.brother.com/welcome/docp100278/cv_ql800_eng_raster_101.pdf)
 //!
-//! Here is a small example on how to use it:
+//! # Example: Printing via an USB connection
 //!
 //! ```no_run
-//! use std::{error::Error, fs::File, io::Write};
-//!
 //! use brother_ql::{
-//!     printjob::{CutBehavior, PrintJob},
-//!     media::Media,
+//!     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
+//!     media::Media, printer::PrinterModel, printjob::PrintJob,
 //! };
 //!
-//! pub fn main() -> Result<(), Box<dyn Error>> {
-//!     let img = image::open("test.png")?;
-//!     let job = PrintJob {
-//!         no_pages: 1,
-//!         image: img,
-//!         media: Media::C62,       // use 62mm wide continuous tape
-//!         high_dpi: false,
-//!         compressed: false,       // unsupported
-//!         quality_priority: false, // no effect on two-color printing
-//!         cut_behaviour: CutBehavior::CutAtEnd,
-//!     };
-//!     let data = job.compile()?;
-//!     let mut file = File::create("test.bin")?;
-//!     let _ = file.write(&data);
-//!     // We can now send this binary directly to the printer, for example using `nc`
-//!     Ok(())
-//! }
-//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! // Create connection info for QL-820NWB
+//! let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+//! // Open USB connection
+//! let mut connection = UsbConnection::open(info)?;
+//! // Read status from printer
+//! let _status = connection.get_status()?;
+//! // Create a print job with more than one page
+//! let img = image::open("c62.png")?;
+//! let job = PrintJob::new(img, Media::C62)?.page_count(2);
+//! // These are the defaults for the other options:
+//! // .high_dpi(false)
+//! // .compressed(false)
+//! // .quality_priority(true)
+//! // .cut_behavior(CutBehavior::CutEach)?; // default for continuous media
+//! // Finally, print
+//! connection.print(job)?;
+//! # Ok(())
+//! # }
 //! ```
-#![warn(missing_docs)]
+//!
+//! # Example: Compiling and saving a print job
+//!
+//! ```no_run
+//! use brother_ql::{
+//!     media::Media, printer::PrinterModel, printjob::PrintJob,
+//! };
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let img = image::open("c62.png")?;
+//! let job = PrintJob::new(img, Media::C62)?;
+//! let data = job.compile();
+//! let mut file = File::create("c62mm.bin")?;
+//! file.write_all(&data)?;
+//! # Ok(())
+//! # }
+//! ```
+
 mod commands;
+#[cfg(feature = "usb")]
+pub mod connection;
 pub mod error;
 pub mod media;
+pub mod printer;
 pub mod printjob;
 mod raster_image;
+#[cfg(feature = "usb")]
+pub mod status;
