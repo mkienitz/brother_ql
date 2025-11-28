@@ -150,7 +150,6 @@ dependencies = [
  "bitflags",
  "custom_debug",
  "image",
- "itertools",
  "rusb",
  "serde",
  "thiserror",

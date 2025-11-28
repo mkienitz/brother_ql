@@ -5,7 +5,6 @@ use image::{
     DynamicImage, GenericImageView, GrayImage, ImageBuffer, Rgb,
     imageops::{self, BiLevel},
 };
-use itertools::Itertools;
 
 use crate::{
     error::PrintJobError,
@@ -101,12 +100,12 @@ fn mask_to_raster_layer(mask: GrayImage) -> RasterLayer {
                         });
                     res
                 })
-                .collect_vec()
+                .collect::<Vec<_>>()
                 .try_into()
                 .expect("This is infallible because we ensure exact sizes");
             raster_line
         })
-        .collect_vec();
+        .collect();
     res.reverse();
     res
 }
