@@ -75,6 +75,24 @@ pub enum UsbError {
     Rusb(#[from] rusb::Error),
 }
 
+/// Kernel connection errors
+#[derive(Error, Debug)]
+pub enum KernelError {
+    /// Kernel I/O error
+    #[error("Kernel IO error: {0}")]
+    KernelIOError(#[from] std::io::Error),
+
+    /// Failed to write all data to the kernel device
+    ///
+    /// This should never occur, but if it does, please report it as a GitHub issue
+    #[error("Incomplete write occured! Please report this issue!")]
+    IncompleteWrite,
+
+    /// Kernel operation timeout
+    #[error("Kernel IO operation timed out")]
+    KernelIOTimeout,
+}
+
 /// Status parsing errors
 ///
 /// Returned when status bytes from the printer are malformed.
@@ -87,19 +105,21 @@ pub struct StatusParsingError {
 
 /// Status reading errors
 ///
-/// Returned by [`get_status`](crate::connection::UsbConnection::get_status).
+/// Generic over the connection error type `E` (e.g., [`UsbError`] or [`KernelError`]).
+///
+/// Returned by `get_status` methods on connection types.
 #[derive(Error, Debug)]
-pub enum StatusError {
-    /// USB communication error
+pub enum StatusError<E> {
+    /// Connection error
     #[error(transparent)]
-    Usb(#[from] UsbError),
+    Connection(#[from] E),
 
     /// Printer did not respond after retries
     #[error("Printer did not respond with a status information reply after being queried")]
     NoResponse,
     /// Status parsing error (malformed status bytes)
     #[error(transparent)]
-    Parsing(#[from] StatusParsingError),
+    Parsing(StatusParsingError),
 }
 
 /// Protocol flow errors during printing
@@ -129,18 +149,20 @@ pub enum ProtocolError {
 
 /// Printing errors
 ///
+/// Generic over the connection error type `E` (e.g., [`UsbError`] or [`KernelError`]).
+///
 /// Returned by [`print`](crate::connection::PrinterConnection::print).
 #[derive(Error, Debug)]
-pub enum PrintError {
-    /// USB communication error
+pub enum PrintError<E> {
+    /// Connection error
     #[error(transparent)]
-    Usb(#[from] UsbError),
+    Connection(#[from] E),
 
     /// Status reading error (communication, timeout, or parsing)
     #[error(transparent)]
-    Status(StatusError),
+    Status(StatusError<E>),
 
     /// Protocol flow error (unexpected status, printer error, etc.)
     #[error(transparent)]
-    Protocol(#[from] ProtocolError),
+    Protocol(ProtocolError),
 }
