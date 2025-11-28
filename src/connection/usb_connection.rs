@@ -6,7 +6,7 @@ use tracing::debug;
 
 use crate::{error::UsbError, printer::PrinterModel};
 
-use super::PrinterConnection;
+use super::{PrinterConnection, printer_connection::sealed::ConnectionImpl};
 
 /// USB connection parameters for a Brother QL printer
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -140,7 +140,11 @@ impl UsbConnection {
     }
 }
 
-impl PrinterConnection for UsbConnection {
+// Implement the public connection interface
+impl PrinterConnection for UsbConnection {}
+
+// Implement the private connection interface
+impl ConnectionImpl for UsbConnection {
     type Error = UsbError;
 
     fn write(&mut self, data: &[u8]) -> Result<(), Self::Error> {

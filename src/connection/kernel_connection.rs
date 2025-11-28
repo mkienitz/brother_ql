@@ -7,9 +7,8 @@ use std::{
 
 use tracing::debug;
 
+use super::{PrinterConnection, printer_connection::sealed::ConnectionImpl};
 use crate::error::KernelError;
-
-use super::PrinterConnection;
 
 /// Kernel connection to a Brother QL printer
 pub struct KernelConnection {
@@ -35,7 +34,11 @@ impl KernelConnection {
     }
 }
 
-impl PrinterConnection for KernelConnection {
+// Implement the public connection interface
+impl PrinterConnection for KernelConnection {}
+
+// Implement the private connection interface
+impl ConnectionImpl for KernelConnection {
     type Error = KernelError;
 
     fn write(&mut self, data: &[u8]) -> Result<(), Self::Error> {
