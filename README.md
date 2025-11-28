@@ -33,9 +33,24 @@ The following Brother QL label printers are supported:
 
 For more details, check the [official Raster Command Reference](https://download.brother.com/welcome/docp100278/cv_ql800_eng_raster_101.pdf) (this one is for the 8xx series).
 
+## Installation
+
+```bash
+cargo add brother_ql
+
+# Or with optional features:
+cargo add brother_ql --features usb
+```
+
+**Feature flags:**
+- `usb` - Enable USB printing support (requires `libusb`)
+- `serde` - Enable serialization support
+
 ## Examples
 
 ### Printing via USB connection
+
+**Note:** Requires the `usb` feature.
 
 ```rust
 use brother_ql::{
@@ -64,7 +79,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### Printing via kernel connection
+
+**Note:** Works without any optional features. On Linux, you can use the kernel's USB printer driver (`/dev/usb/lp0`).
+
+```rust
+use brother_ql::{
+    connection::{KernelConnection, PrinterConnection},
+    media::Media, printjob::PrintJob,
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Open kernel device connection
+    let mut connection = KernelConnection::open("/dev/usb/lp0")?;
+    // Create and print a job
+    let img = image::open("c62.png")?;
+    let job = PrintJob::new(img, Media::C62)?;
+    connection.print(job)?;
+    Ok(())
+}
+```
+
 ### Compiling and saving a print job
+
+**Note:** Works without any optional features.
 
 ```rust
 use std::{fs::File, io::Write};

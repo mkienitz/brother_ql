@@ -55,12 +55,10 @@
 //! ```
 
 mod commands;
-#[cfg(feature = "usb")]
 pub mod connection;
 pub mod error;
 pub mod media;
 pub mod printer;
 pub mod printjob;
 mod raster_image;
-#[cfg(feature = "usb")]
 pub mod status;

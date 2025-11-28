@@ -1,6 +1,6 @@
 [jobs.clippy]
-command = [
-    "cargo", "clippy",
-    "--all-targets",
-    "--all-features",
-]
+command = ["cargo", "clippy", "--all-targets", "--all-features"]
+
+[jobs.doc-open]
+command = ["cargo", "doc", "--no-deps", "--all-features", "--open"]
+need_stdout = false

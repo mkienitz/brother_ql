@@ -3,7 +3,8 @@
 //! This module provides precise error types for different failure scenarios:
 //!
 //! - [`PrintJobError`]: Validation and compatibility errors during print job creation
-//! - [`UsbError`]: USB communication and device errors
+//! - [`UsbError`]: USB communication and device errors (requires `usb` feature)
+//! - [`KernelError`]: Kernel connection errors
 //! - [`StatusParsingError`]: Status parsing errors
 //! - [`StatusError`]: Errors that can occur when reading status
 //! - [`ProtocolError`]: Protocol flow errors during printing
@@ -43,6 +44,7 @@ pub enum PrintJobError {
 }
 
 /// USB communication errors
+#[cfg(feature = "usb")]
 #[derive(Error, Debug)]
 pub enum UsbError {
     /// USB device not found with the specified vendor and product ID

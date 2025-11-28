@@ -30,6 +30,7 @@ pub enum PrinterModel {
 }
 
 impl PrinterModel {
+    #[cfg(feature = "usb")]
     pub(crate) const fn product_id(self) -> u16 {
         match self {
             PrinterModel::QL560 => 0x2027,

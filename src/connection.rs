@@ -5,12 +5,14 @@
 
 mod kernel_connection;
 mod printer_connection;
+#[cfg(feature = "usb")]
 mod usb_connection;
 
 // Re-export the trait
 pub use printer_connection::PrinterConnection;
 
 // Re-export USB types
+#[cfg(feature = "usb")]
 pub use usb_connection::{UsbConnection, UsbConnectionInfo};
 
 // Re-export kernel types

@@ -6,11 +6,8 @@ edition = "2021"
 license = "MIT"
 authors = ["Maximilian Kienitz <contact@kienitz.dev>"]
 repository = "https://github.com/mkienitz/brother_ql"
-exclude = [
-	"flake.nix",
-	"flake.lock",
-	".envrc",
-]
+exclude = ["flake.nix", "flake.lock", ".envrc"]
+
 
 [dependencies]
 bitflags = "2.10.0"
@@ -23,15 +20,28 @@ thiserror = "2.0.17"
 tracing = "0.1.41"
 
 [features]
-default = ["usb"]
 serde = ["dep:serde"]
 usb = ["dep:rusb"]
 
 [dev-dependencies]
-tracing-subscriber = { version = "0.3.20", features = ["tracing", "env-filter"] }
+tracing-subscriber = { version = "0.3.20", features = [
+  "tracing",
+  "env-filter",
+] }
+
+[[example]]
+name = "usb_print_c62"
+required-features = ["usb"]
+
+[[example]]
+name = "usb_status"
+required-features = ["usb"]
 
 [lints.rust]
 missing_docs = "warn"
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
+
+[package.metadata.docs.rs]
+all-features = true
