@@ -2,12 +2,14 @@
 use std::{
     fs::{File, OpenOptions},
     io::{Read, Write},
+    os::fd::AsFd,
     path::Path,
 };
 
+use nix::poll::{poll, PollFd, PollFlags, PollTimeout};
 use tracing::debug;
 
-use super::{PrinterConnection, printer_connection::sealed::ConnectionImpl};
+use super::{printer_connection::sealed::ConnectionImpl, PrinterConnection};
 use crate::error::KernelError;
 
 /// Kernel connection to a Brother QL printer
@@ -50,6 +52,13 @@ impl ConnectionImpl for KernelConnection {
     }
 
     fn read(&mut self, buffer: &mut [u8]) -> Result<usize, Self::Error> {
+        // Poll for the device handle to become readable to avoid locking up in case the printer
+        // is completely unresponsive (or a different device altogether)
+        let mut pollfds = [PollFd::new(self.handle.as_fd(), PollFlags::POLLIN)];
+        let nready = poll(&mut pollfds, PollTimeout::ZERO).unwrap_or(0);
+        if nready == 0 {
+            return Ok(0);
+        }
         let bytes_read = self.handle.read(buffer)?;
         Ok(bytes_read)
     }
