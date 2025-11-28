@@ -30,7 +30,7 @@ pub enum PrinterModel {
 }
 
 impl PrinterModel {
-    pub(crate) const fn pid(&self) -> u16 {
+    pub(crate) const fn product_id(self) -> u16 {
         match self {
             PrinterModel::QL560 => 0x2027,
             PrinterModel::QL570 => 0x2028,

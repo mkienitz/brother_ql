@@ -42,7 +42,7 @@ impl UsbConnectionInfo {
     pub const fn from_model(model: PrinterModel) -> Self {
         Self {
             vendor_id: 0x04f9, // Brother
-            product_id: model.pid(),
+            product_id: model.product_id(),
             interface: 0,
             endpoint_out: 0x02,
             endpoint_in: 0x81,
