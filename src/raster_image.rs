@@ -1,3 +1,6 @@
+use std::fmt;
+
+use custom_debug::Debug as CustomDebug;
 use image::{
     DynamicImage, GenericImageView, GrayImage, ImageBuffer, Rgb,
     imageops::{self, BiLevel},
@@ -11,15 +14,22 @@ use crate::{
 
 type RasterLayer = Vec<[u8; 90]>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(CustomDebug, Clone, PartialEq)]
 pub(crate) enum RasterImage {
     Monochrome {
+        #[debug(with = "debug_raster_layer")]
         black_layer: RasterLayer,
     },
     TwoColor {
+        #[debug(with = "debug_raster_layer")]
         black_layer: RasterLayer,
+        #[debug(with = "debug_raster_layer")]
         red_layer: RasterLayer,
     },
+}
+
+fn debug_raster_layer(layer: &RasterLayer, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "<RasterLayer({} lines)>", layer.len())
 }
 
 impl RasterImage {
