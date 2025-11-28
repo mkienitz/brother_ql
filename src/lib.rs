@@ -1,8 +1,8 @@
-//! This is a crate to convert image data to the Raster Command binary data understood by the
-//! Brother QL-8xx family of label printers.
+//! This is a crate to convert image data to the Raster Command binary data understood by
+//! Brother QL series label printers.
 //!
 //! * It is still very much work-in-progress so some bugs might still exist.
-//! * Currently, only the 8xx family of label printers is supported but other printers should be relatively easy to add
+//! * Many Brother QL models are supported (5xx, 6xx, 7xx, 8xx series), and other printers should be relatively easy to add
 //! * The two-color (red and black) printing mode is supported when using a printer with this
 //!   capability
 //! * The image is represented by [`DynamicImage`][image::DynamicImage] from the [image] crate
