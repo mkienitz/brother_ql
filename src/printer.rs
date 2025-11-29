@@ -46,6 +46,24 @@ impl PrinterModel {
             PrinterModel::QL820NWB => 0x209d,
         }
     }
+
+    #[cfg(feature = "usb")]
+    pub(crate) fn from_product_id(product_id: u16) -> Option<Self> {
+        match product_id {
+            0x2027 => Some(PrinterModel::QL560),
+            0x2028 => Some(PrinterModel::QL570),
+            0x2029 => Some(PrinterModel::QL580N),
+            0x20C0 => Some(PrinterModel::QL600),
+            0x201B => Some(PrinterModel::QL650TD),
+            0x2042 => Some(PrinterModel::QL700),
+            0x2043 => Some(PrinterModel::QL710W),
+            0x2044 => Some(PrinterModel::QL720NW),
+            0x209b => Some(PrinterModel::QL800),
+            0x209c => Some(PrinterModel::QL810W),
+            0x209d => Some(PrinterModel::QL820NWB),
+            _ => None,
+        }
+    }
 }
 
 impl TryFrom<u8> for PrinterModel {
