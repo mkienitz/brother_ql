@@ -6,7 +6,7 @@ use tracing::debug;
 
 use crate::{error::UsbError, printer::PrinterModel};
 
-use super::{PrinterConnection, printer_connection::sealed::ConnectionImpl};
+use super::{printer_connection::sealed::ConnectionImpl, PrinterConnection};
 
 /// USB connection parameters for a Brother QL printer
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,6 +48,30 @@ impl UsbConnectionInfo {
             endpoint_in: 0x81,
             timeout: Duration::from_millis(5000),
         }
+    }
+
+    /// Find a connected printer and return its connection info.
+    ///
+    /// Returns the correct USB parameters (vendor ID, product ID, endpoints, etc.)
+    /// for the first supported printer that's found. This is the recommended way to
+    /// create connection info if you do not care which printer model you have.
+    ///
+    /// # Errors
+    /// Returns an error if any USB operations fail
+    pub fn discover() -> Result<Option<Self>, UsbError> {
+        let context = Context::new()?;
+        let devices = context.devices()?;
+
+        for device in devices.iter() {
+            let descriptor = device.device_descriptor()?;
+            if descriptor.vendor_id() == 0x04f9 {
+                if let Some(model) = PrinterModel::from_product_id(descriptor.product_id()) {
+                    return Ok(Some(Self::from_model(model)));
+                }
+            }
+        }
+
+        Ok(None)
     }
 }
 
