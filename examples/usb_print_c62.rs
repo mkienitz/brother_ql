@@ -1,11 +1,10 @@
 //! Print 62mm continuous labels via USB connection
 
-use std::error::Error;
+use std::{env, error::Error};
 
 use brother_ql::{
     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
     media::Media,
-    printer::PrinterModel,
     printjob::PrintJob,
 };
 use tracing_subscriber::{field::MakeExt, EnvFilter};
@@ -16,14 +15,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map_fmt_fields(MakeExt::debug_alt)
         .with_env_filter(EnvFilter::new("debug"))
         .init();
-    // Create connection info for QL-820NWB
-    let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+    // Take an image path from the command line
+    let mut args = env::args();
+    let prog = args.next().unwrap();
+    let Some(img_path) = args.next() else {
+        println!("Usage: {prog} <image>");
+        return Ok(());
+    };
+    // Create connection info for whatever printer is connected
+    let info = UsbConnectionInfo::discover()?.expect("No supported printer found");
     // Open USB connection
     let mut connection = UsbConnection::open(info)?;
     // Read status from printer
     let _status = connection.get_status()?;
     // Create a print job with more than one page
-    let img = image::open("c62.png")?;
+    let img = image::open(img_path)?;
     let job = PrintJob::new(img, Media::C62)?.page_count(2);
     // These are the defaults for the other options:
     // .high_dpi(false)
