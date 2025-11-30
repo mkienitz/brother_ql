@@ -6,7 +6,7 @@ use tracing::debug;
 
 use crate::{error::UsbError, printer::PrinterModel};
 
-use super::{PrinterConnection, printer_connection::sealed::ConnectionImpl};
+use super::{printer_connection::sealed::ConnectionImpl, PrinterConnection};
 
 /// USB connection parameters for a Brother QL printer
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

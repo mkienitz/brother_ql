@@ -6,7 +6,7 @@ use brother_ql::{
     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
     printer::PrinterModel,
 };
-use tracing_subscriber::{EnvFilter, field::MakeExt};
+use tracing_subscriber::{field::MakeExt, EnvFilter};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // This example uses logging

@@ -6,7 +6,7 @@ use brother_ql::{
     media::Media,
     printjob::PrintJob,
 };
-use tracing_subscriber::{EnvFilter, field::MakeExt};
+use tracing_subscriber::{field::MakeExt, EnvFilter};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // This example uses pretty logging

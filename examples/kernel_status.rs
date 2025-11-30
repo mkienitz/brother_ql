@@ -2,7 +2,7 @@
 use std::error::Error;
 
 use brother_ql::connection::{KernelConnection, PrinterConnection};
-use tracing_subscriber::{EnvFilter, field::MakeExt};
+use tracing_subscriber::{field::MakeExt, EnvFilter};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // This example uses logging

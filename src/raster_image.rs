@@ -2,8 +2,8 @@ use std::fmt;
 
 use custom_debug::Debug as CustomDebug;
 use image::{
-    DynamicImage, GenericImageView, GrayImage, ImageBuffer, Rgb,
     imageops::{self, BiLevel},
+    DynamicImage, GenericImageView, GrayImage, ImageBuffer, Rgb,
 };
 
 use crate::{
