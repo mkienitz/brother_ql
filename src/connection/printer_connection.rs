@@ -5,7 +5,7 @@ use tracing::{debug, info};
 use crate::{
     commands::RasterCommands,
     connection::printer_connection::sealed::ConnectionImpl,
-    error::{PrintError, StatusError},
+    error::{PrintError, PrintErrorSource, StatusError},
     printjob::PrintJob,
     status::{Phase, StatusInformation, StatusType},
 };
@@ -18,12 +18,12 @@ pub(super) mod sealed {
 
     use crate::{
         commands::RasterCommand,
-        error::{ProtocolError, StatusError},
+        error::{ConnectionError, ProtocolError, StatusError},
         status::{Phase, StatusInformation, StatusType},
     };
 
     pub trait ConnectionImpl {
-        type Error: std::error::Error + Send + Sync + 'static;
+        type Error: std::error::Error + Send + Sync + 'static + ConnectionError;
 
         /// Write data to the printer
         ///
@@ -174,10 +174,9 @@ pub trait PrinterConnection: ConnectionImpl {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - Communication with the printer fails
-    /// - The printer reports an error (paper jam, out of media, etc.)
-    /// - The print job cannot be compiled
-    /// - Status validation fails during printing
+    /// - Communication with the printer fails (connection-type specific)
+    /// - The printer reports an error (paper jam, out of media, etc.) or an unexpected state
+    /// - Status information sent by the printer fails during printing
     ///
     /// # Example
     /// ```no_run
@@ -203,31 +202,40 @@ pub trait PrinterConnection: ConnectionImpl {
         let no_pages = job.page_count;
         let parts = job.into_parts();
         // Send preamble
-        self.write(&parts.preamble.build())?;
+        self.write(&parts.preamble.build())
+            // TODO: Decide on error mapping API
+            // .map_err(|e| PrintError::with_page(e, 0))?;
+            .map_err(PrintError::err_source_mapper(0))?;
         // Send status information request and validate printer is ready
-        let status = self.get_status().map_err(PrintError::Status)?;
+        let status = self
+            .get_status()
+            .map_err(PrintError::err_source_mapper(0))?;
         Self::validate_status(&status, &StatusType::StatusRequestReply, &Phase::Receiving)
-            .map_err(PrintError::Protocol)?;
+            .map_err(|e| PrintError::with_page(e, 0))?;
+
         for (page_no, page) in parts.page_data.into_iter().enumerate() {
+            #[allow(clippy::cast_possible_truncation)]
+            let current_page = (page_no + 1) as u32;
+            // We use a closure since try blocks are not available yet
+            let page_res: Result<(), PrintErrorSource<Self::Error>> = (|| {
+                self.write(&page.build())?;
+                // Printer should change phase to "Printing"
+                let status = self.read_status_reply()?;
+                Self::validate_status(&status, &StatusType::PhaseChange, &Phase::Printing)?;
+                // Printer should signal print completion
+                let status = self.read_status_reply()?;
+                Self::validate_status(&status, &StatusType::PrintingCompleted, &Phase::Printing)?;
+                // Printer should change phase to "Receiving" again
+                let status = self.read_status_reply()?;
+                Self::validate_status(&status, &StatusType::PhaseChange, &Phase::Receiving)?;
+                Ok(())
+            })();
+            page_res.map_err(PrintError::err_source_mapper(current_page))?;
             debug!(
                 "Sending print data for page {}/{}...",
-                page_no + 1,
-                no_pages
+                current_page, no_pages
             );
-            self.write(&page.build())?;
-            // Printer should change phase to "Printing"
-            let status = self.read_status_reply().map_err(PrintError::Status)?;
-            Self::validate_status(&status, &StatusType::PhaseChange, &Phase::Printing)
-                .map_err(PrintError::Protocol)?;
-            // Printer should signal print completion
-            let status = self.read_status_reply().map_err(PrintError::Status)?;
-            Self::validate_status(&status, &StatusType::PrintingCompleted, &Phase::Printing)
-                .map_err(PrintError::Protocol)?;
-            // Printer should change phase to "Receiving" again
-            let status = self.read_status_reply().map_err(PrintError::Status)?;
-            Self::validate_status(&status, &StatusType::PhaseChange, &Phase::Receiving)
-                .map_err(PrintError::Protocol)?;
-            info!("Page {}/{} printed successfully!", page_no + 1, no_pages);
+            info!("Page {}/{} printed successfully!", current_page, no_pages);
         }
         info!("Print job completed successfully!");
         Ok(())

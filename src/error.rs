@@ -43,6 +43,11 @@ pub enum PrintJobError {
     ImageError(#[from] image::ImageError),
 }
 
+/// Marker trait for connection error types
+///
+/// Currently, only [`UsbError`] and [`KernelError`] implement this trait.
+pub trait ConnectionError {}
+
 /// USB communication errors
 #[cfg(feature = "usb")]
 #[derive(Error, Debug)]
@@ -62,20 +67,14 @@ pub enum UsbError {
     #[error("Incomplete USB write occured! Please report this issue!")]
     IncompleteWrite,
 
-    /// USB communication error from the rusb library
-    ///
     /// Wraps errors from the underlying rusb USB library, including:
-    /// - Timeout
-    /// - Permission denied
-    /// - Device busy
-    /// - Pipe errors
-    /// - Device disconnected
-    /// - No device found
     ///
     /// See [`rusb::Error`] for all possible error variants.
     #[error(transparent)]
     Rusb(#[from] rusb::Error),
 }
+
+impl ConnectionError for UsbError {}
 
 /// Kernel connection errors
 #[derive(Error, Debug)]
@@ -95,6 +94,8 @@ pub enum KernelError {
     KernelIOTimeout,
 }
 
+impl ConnectionError for KernelError {}
+
 /// Status parsing errors
 ///
 /// Returned when status bytes from the printer are malformed.
@@ -111,7 +112,7 @@ pub struct StatusParsingError {
 ///
 /// Returned by `get_status` methods on connection types.
 #[derive(Error, Debug)]
-pub enum StatusError<E> {
+pub enum StatusError<E: ConnectionError> {
     /// Connection error
     #[error(transparent)]
     Connection(#[from] E),
@@ -154,17 +155,65 @@ pub enum ProtocolError {
 /// Generic over the connection error type `E` (e.g., [`UsbError`] or [`KernelError`]).
 ///
 /// Returned by [`print`](crate::connection::PrinterConnection::print).
+///
+/// This struct contains:
+/// - `page`: The page number where the error occurred (0 = pre-print validation, 1+ = actual page)
+/// - `kind`: The underlying error source
 #[derive(Error, Debug)]
-pub enum PrintError<E> {
+#[error("Print error on page {page_no}: {source}")]
+pub struct PrintError<E: ConnectionError> {
+    /// Page number where the error occurred
+    ///
+    /// - `0` = Error during pre-print validation (before any pages were printed)
+    /// - `1+` = Error while printing the specified page
+    pub page_no: u32,
+
+    /// The specific error kind
+    #[source]
+    pub source: PrintErrorSource<E>,
+}
+
+impl<E: ConnectionError> PrintError<E> {
+    /// Create a `PrintError` with the given source and page number
+    pub(crate) fn with_page<T: Into<PrintErrorSource<E>>>(err: T, page_no: u32) -> Self {
+        PrintError {
+            page_no,
+            source: err.into(),
+        }
+    }
+
+    /// Return a closure that maps errors to `PrintError` with the given page number
+    ///
+    /// Useful with `map_err` when the page number is known in advance.
+    pub(crate) fn err_source_mapper<S>(page_no: u32) -> impl Fn(S) -> Self
+    where
+        S: Into<PrintErrorSource<E>>,
+    {
+        move |e: S| Self {
+            page_no,
+            source: e.into(),
+        }
+    }
+}
+
+/// Specific kinds of printing errors
+///
+/// Generic over the connection error type `E` (e.g., [`UsbError`] or [`KernelError`]).
+///
+/// This enum represents the different types of errors that can occur during printing.
+/// It is typically accessed via [`PrintError::kind`].
+#[derive(Error, Debug)]
+#[error(transparent)]
+pub enum PrintErrorSource<E: ConnectionError> {
     /// Connection error
     #[error(transparent)]
     Connection(#[from] E),
 
     /// Status reading error (communication, timeout, or parsing)
     #[error(transparent)]
-    Status(StatusError<E>),
+    Status(#[from] StatusError<E>),
 
     /// Protocol flow error (unexpected status, printer error, etc.)
     #[error(transparent)]
-    Protocol(ProtocolError),
+    Protocol(#[from] ProtocolError),
 }
