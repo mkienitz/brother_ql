@@ -8,6 +8,8 @@ use crate::{error::UsbError, printer::PrinterModel};
 
 use super::{printer_connection::sealed::ConnectionImpl, PrinterConnection};
 
+const BROTHER_USB_VENDOR_ID: u16 = 0x04f9;
+
 /// USB connection parameters for a Brother QL printer
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UsbConnectionInfo {
@@ -41,7 +43,7 @@ impl UsbConnectionInfo {
     #[must_use]
     pub const fn from_model(model: PrinterModel) -> Self {
         Self {
-            vendor_id: 0x04f9, // Brother
+            vendor_id: BROTHER_USB_VENDOR_ID,
             product_id: model.product_id(),
             interface: 0,
             endpoint_out: 0x02,
@@ -64,7 +66,7 @@ impl UsbConnectionInfo {
 
         for device in devices.iter() {
             let descriptor = device.device_descriptor()?;
-            if descriptor.vendor_id() == 0x04f9 {
+            if descriptor.vendor_id() == BROTHER_USB_VENDOR_ID {
                 if let Some(model) = PrinterModel::from_product_id(descriptor.product_id()) {
                     return Ok(Some(Self::from_model(model)));
                 }
