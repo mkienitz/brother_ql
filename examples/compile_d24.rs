@@ -13,13 +13,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .init();
     // Make sure to use a compatible image (236x236 pixels wide)
     let img = image::open("d24.png")?;
-    let job = PrintJob::new(img, Media::D24)?;
-    // These are the defaults for the other options:
-    // .page_count(1)
-    // .high_dpi(false)
-    // .compressed(false)
-    // .quality_priority(true)
-    // .cut_behavior(CutBehavior::CutAtEnd)?; // default for die-cut media
+    // Compile and save print job
+    let job = PrintJob::from_image(img, Media::D24)?;
     let data = job.compile();
     let mut file = File::create("d24.bin")?;
     file.write_all(&data)?;

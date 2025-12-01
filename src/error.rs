@@ -2,7 +2,7 @@
 //!
 //! This module provides precise error types for different failure scenarios:
 //!
-//! - [`PrintJobError`]: Validation and compatibility errors during print job creation
+//! - [`PrintJobCreationError`]: Validation and compatibility errors during print job creation
 //! - [`UsbError`]: USB communication and device errors (requires `usb` feature)
 //! - [`KernelError`]: Kernel connection errors
 //! - [`StatusParsingError`]: Status parsing errors
@@ -16,9 +16,9 @@ use crate::{media::Media, status::ErrorFlags};
 
 /// Errors related to print job validation
 ///
-/// Returned by [`PrintJob::new`][crate::printjob::PrintJob::new] when image dimensions don't match media requirements.
+/// Returned when creating a [`PrintJob`][crate::printjob::PrintJob] when image dimensions don't match media requirements.
 #[derive(Error, Debug)]
-pub enum PrintJobError {
+pub enum PrintJobCreationError {
     /// Image dimensions don't match the selected media type
     ///
     /// The image width must exactly match the media width in dots (pixels).
@@ -214,7 +214,7 @@ impl<E: ConnectionError> PrintError<E> {
 /// Generic over the connection error type `E` (e.g., [`UsbError`] or [`KernelError`]).
 ///
 /// This enum represents the different types of errors that can occur during printing.
-/// It is typically accessed via [`PrintError::kind`].
+/// It is typically accessed via [`PrintError::source`].
 #[derive(Error, Debug)]
 #[error(transparent)]
 pub enum PrintErrorSource<E: ConnectionError> {

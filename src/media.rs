@@ -96,17 +96,17 @@ pub(crate) enum LengthInfo {
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub(crate) struct MediaSettings {
     /// Type of label roll (continuous or die-cut)
-    pub media_type: MediaType,
+    pub(crate) media_type: MediaType,
     /// Width in dots
-    pub width_dots: u32,
+    pub(crate) width_dots: u32,
     /// Width in millimeters
-    pub width_mm: u8,
+    pub(crate) width_mm: u8,
     /// Length information
-    pub length_info: LengthInfo,
+    pub(crate) length_info: LengthInfo,
     /// Left margin in dots
-    pub left_margin: u32,
+    pub(crate) left_margin: u32,
     /// Whether this media supports color printing
-    pub color: bool,
+    pub(crate) color: bool,
 }
 
 /// Helper macro for constructing `MediaSettings`

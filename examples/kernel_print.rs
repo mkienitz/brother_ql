@@ -4,7 +4,7 @@ use std::{env, error::Error};
 use brother_ql::{
     connection::{KernelConnection, PrinterConnection},
     media::Media,
-    printjob::PrintJob,
+    printjob::PrintJobBuilder,
 };
 use tracing_subscriber::{field::MakeExt, EnvFilter};
 
@@ -28,12 +28,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _status = connection.get_status()?;
     // Create a print job with more than one page
     let img = image::open(img_path)?;
-    let job = PrintJob::new(img, Media::C62)?.page_count(2);
-    // These are the defaults for the other options:
-    // .high_dpi(false)
-    // .compressed(false)
-    // .quality_priority(true)
-    // .cut_behavior(CutBehavior::CutEach)?; // default for continuous media
+    let job = PrintJobBuilder::new(Media::C62)
+        .add_label(img)
+        // These are the defaults for the other options:
+        // .copies(1)
+        // .high_dpi(false)
+        // .compressed(false)
+        // .quality_priority(true)
+        // .cut_behavior(CutBehavior::CutEach) // default for continuous media like C62
+        .build()?;
     // Finally, print
     connection.print(job)?;
     Ok(())

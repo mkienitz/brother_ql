@@ -13,46 +13,94 @@
 //! ```no_run
 //! use brother_ql::{
 //!     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
-//!     media::Media, printer::PrinterModel, printjob::PrintJob,
+//!     media::Media,
+//!     printer::PrinterModel,
+//!     printjob::PrintJob,
 //! };
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create connection info for QL-820NWB
+//! // Connect to a specific printer model
 //! let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-//! // Open USB connection
 //! let mut connection = UsbConnection::open(info)?;
-//! // Read status from printer
-//! let _status = connection.get_status()?;
-//! // Create a print job with more than one page
-//! let img = image::open("c62.png")?;
-//! let job = PrintJob::new(img, Media::C62)?.page_count(2);
-//! // These are the defaults for the other options:
-//! // .high_dpi(false)
-//! // .compressed(false)
-//! // .quality_priority(true)
-//! // .cut_behavior(CutBehavior::CutEach)?; // default for continuous media
-//! // Finally, print
+//!
+//! // Create and print a label
+//! let img = image::open("label.png")?;
+//! let job = PrintJob::from_image(img, Media::C62)?;
 //! connection.print(job)?;
 //! # Ok(())
 //! # }
 //! ```
 //!
-//! # Example: Compiling and saving a print job
+//! ## Kernel Driver Printing (Linux, no features required)
 //!
 //! ```no_run
 //! use brother_ql::{
-//!     media::Media, printer::PrinterModel, printjob::PrintJob,
+//!     connection::{KernelConnection, PrinterConnection},
+//!     media::Media,
+//!     printjob::PrintJob,
 //! };
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! let img = image::open("c62.png")?;
-//! let job = PrintJob::new(img, Media::C62)?;
-//! let data = job.compile();
-//! let mut file = File::create("c62mm.bin")?;
-//! file.write_all(&data)?;
+//! let mut connection = KernelConnection::open("/dev/usb/lp0")?;
+//! let img = image::open("label.png")?;
+//! let job = PrintJob::from_image(img, Media::C62)?;
+//! connection.print(job)?;
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! ## Compile to File (no features required)
+//!
+//! ```no_run
+//! use brother_ql::{media::Media, printjob::PrintJob};
+//! use std::{fs::File, io::Write};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let img = image::open("label.png")?;
+//! let job = PrintJob::from_image(img, Media::C62)?;
+//!
+//! // Compile to binary data
+//! let data = job.compile();
+//!
+//! // Save to file (can be sent via network: `nc printer-ip 9100 < output.bin`)
+//! File::create("output.bin")?.write_all(&data)?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Choosing Media
+//!
+//! Media types determine label dimensions and behavior:
+//!
+//! - **Continuous rolls** (`C` prefix like `C62`) - Cut to any length
+//! - **Die-cut labels** (`D` prefix like `D17x54`) - Pre-cut, fixed dimensions
+//! - **Two-color** (`R` suffix like `C62R`) - Black/red printing support
+//!
+//! All media types require **720 pixels wide** images at 300 DPI. Height varies by media type.
+//! See [`media`] module for complete details.
+//!
+//! # Print Job Configuration
+//!
+//! Use [`PrintJobBuilder`](printjob::PrintJobBuilder) for advanced customization:
+//!
+//! ```no_run
+//! # use brother_ql::{media::Media, printjob::{PrintJobBuilder, CutBehavior}};
+//! # fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! # let img1 = image::open("label1.png")?;
+//! # let img2 = image::open("label2.png")?;
+//! let job = PrintJobBuilder::new(Media::C62)
+//!     .add_label(img1)                    // Add first image
+//!     .add_label(img2)                    // Add second image
+//!     .copies(5)                          // Print 5 copies of each
+//!     .high_dpi(false)                    // 300 DPI (default)
+//!     .quality_priority(true)             // Quality over speed (default)
+//!     .cut_behavior(CutBehavior::CutEvery(2))  // Cut every 2 labels
+//!     .build()?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! See [`PrintJob`] and [`PrintJobBuilder`](printjob::PrintJobBuilder) for defaults and all options.
 
 mod commands;
 pub mod connection;

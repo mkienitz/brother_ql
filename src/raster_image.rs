@@ -7,7 +7,7 @@ use image::{
 };
 
 use crate::{
-    error::PrintJobError,
+    error::PrintJobCreationError,
     media::{LengthInfo, MediaSettings},
 };
 
@@ -35,11 +35,11 @@ impl RasterImage {
     pub(crate) fn new(
         img: DynamicImage,
         media_settings: MediaSettings,
-    ) -> Result<Self, PrintJobError> {
+    ) -> Result<Self, PrintJobCreationError> {
         let (width, height) = img.dimensions();
         // Always check width, for die-cut labels, also check height
         if media_settings.width_dots != width {
-            return Err(PrintJobError::DimensionMismatch {
+            return Err(PrintJobCreationError::DimensionMismatch {
                 expected_width: media_settings.width_dots,
                 actual_width: width,
                 expected_height: None,
@@ -48,7 +48,7 @@ impl RasterImage {
         }
         if let LengthInfo::Fixed { length_dots, .. } = media_settings.length_info {
             if length_dots != height {
-                return Err(PrintJobError::DimensionMismatch {
+                return Err(PrintJobCreationError::DimensionMismatch {
                     expected_width: media_settings.width_dots,
                     actual_width: width,
                     expected_height: Some(length_dots),
@@ -78,6 +78,14 @@ impl RasterImage {
                 )),
             }
         })
+    }
+
+    pub(crate) fn height(&self) -> usize {
+        match self {
+            RasterImage::Monochrome { black_layer } | RasterImage::TwoColor { black_layer, .. } => {
+                black_layer.len()
+            }
+        }
     }
 }
 

@@ -178,7 +178,7 @@ pub(super) mod sealed {
 ///
 /// // Create a print job
 /// let image = image::open("label.png")?;
-/// let job = PrintJob::new(image, Media::C62)?;
+/// let job = PrintJob::from_image(image, Media::C62)?;
 ///
 /// // Print using the trait method
 /// connection.print(job)?;
@@ -214,7 +214,7 @@ pub trait PrinterConnection: ConnectionImpl {
     /// let mut connection = UsbConnection::open(info)?;
     ///
     /// let image = image::open("label.png")?;
-    /// let job = PrintJob::new(image, Media::C62)?;
+    /// let job = PrintJob::from_image(image, Media::C62)?;
     ///
     /// connection.print(job)?;
     /// # Ok(())
@@ -222,7 +222,7 @@ pub trait PrinterConnection: ConnectionImpl {
     /// ```
     fn print(&mut self, job: PrintJob) -> Result<(), PrintError<Self::Error>> {
         info!(?job, "Starting print job...");
-        let no_pages = job.page_count;
+        let no_pages = job.page_count();
         let expected_media = job.media;
         let parts = job.into_parts();
         // Send preamble
