@@ -2,71 +2,64 @@
 
 use crate::error::StatusParsingError;
 
-/// Brother QL printer model
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PrinterModel {
-    /// QL-560
-    QL560,
-    /// QL-570
-    QL570,
-    /// QL-580N
-    QL580N,
-    /// QL-600
-    QL600,
-    /// QL-650TD
-    QL650TD,
-    /// QL-700
-    QL700,
-    /// QL-710W
-    QL710W,
-    /// QL-720NW
-    QL720NW,
-    /// QL-800
-    QL800,
-    /// QL-810W
-    QL810W,
-    /// QL-820NWB
-    QL820NWB,
+macro_rules! printer_models {
+    ($($name:ident ($pid:expr, $rcode:expr),)+) => {
+        /// Brother QL printer models
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum PrinterModel {
+            $(
+                #[doc = stringify!($name)]
+                $name,
+            )+
+        }
+
+        impl PrinterModel {
+            #[cfg(feature = "usb")]
+            pub(crate) const fn product_id(self) -> u16 {
+                match self {
+                    $(Self::$name => $pid,)+
+                }
+            }
+
+            #[cfg(feature = "usb")]
+            pub(crate) const fn from_product_id(product_id: u16) -> Option<Self> {
+                match product_id {
+                    $($pid => Some(Self::$name),)+
+                    _ => None,
+                }
+            }
+        }
+
+        impl TryFrom<u8> for PrinterModel {
+            type Error = StatusParsingError;
+
+            fn try_from(value: u8) -> Result<Self, Self::Error> {
+                match value {
+                    $($rcode => Ok(Self::$name),)+
+                    invalid => Err(StatusParsingError {
+                        reason: format!("invalid model code {invalid:#x}"),
+                    }),
+                }
+            }
+        }
+    };
 }
 
-impl PrinterModel {
-    #[cfg(feature = "usb")]
-    pub(crate) const fn product_id(self) -> u16 {
-        match self {
-            PrinterModel::QL560 => 0x2027,
-            PrinterModel::QL570 => 0x2028,
-            PrinterModel::QL580N => 0x2029,
-            PrinterModel::QL600 => 0x20C0,
-            PrinterModel::QL650TD => 0x201B,
-            PrinterModel::QL700 => 0x2042,
-            PrinterModel::QL710W => 0x2043,
-            PrinterModel::QL720NW => 0x2044,
-            PrinterModel::QL800 => 0x209b,
-            PrinterModel::QL810W => 0x209c,
-            PrinterModel::QL820NWB => 0x209d,
-        }
-    }
-}
-
-impl TryFrom<u8> for PrinterModel {
-    type Error = StatusParsingError;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0x31 => Ok(Self::QL560),
-            0x32 => Ok(Self::QL570),
-            0x33 => Ok(Self::QL580N),
-            0x47 => Ok(Self::QL600),
-            0x51 => Ok(Self::QL650TD),
-            0x35 => Ok(Self::QL700),
-            0x36 => Ok(Self::QL710W),
-            0x37 => Ok(Self::QL720NW),
-            0x38 => Ok(Self::QL800),
-            0x39 => Ok(Self::QL810W),
-            0x41 => Ok(Self::QL820NWB),
-            invalid => Err(StatusParsingError {
-                reason: format!("invalid model code {invalid:#x}"),
-            }),
-        }
-    }
+printer_models! {
+    // Define all printer constants here. Usage:
+    // <enum variant name> (<USB Product ID>, <Raster Model Code>)
+    // - <product_id> comes from the printer's USB specification
+    // - <Raster Model Code> is specified in the Raster Command Reference
+    //   for the status information reply
+    QL560   (0x2027, 0x31),
+    QL570   (0x2028, 0x32),
+    QL580N  (0x2029, 0x33),
+    QL600   (0x20C0, 0x47),
+    QL650TD (0x201B, 0x51),
+    QL700   (0x2042, 0x35),
+    QL710W  (0x2043, 0x36),
+    QL720NW (0x2044, 0x37),
+    QL800   (0x209b, 0x38),
+    QL810W  (0x209c, 0x39),
+    QL820NWB(0x209d, 0x41),
 }
