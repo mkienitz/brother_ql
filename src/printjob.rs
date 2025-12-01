@@ -93,7 +93,7 @@ impl PrintJob {
     /// # }
     /// ```
     pub fn new(image: DynamicImage, media: Media) -> Result<Self, PrintJobError> {
-        let media_settings = MediaSettings::new(media);
+        let media_settings = MediaSettings::from(media);
         let height = image.height();
         let raster_image = RasterImage::new(image, media_settings)?;
 
@@ -169,7 +169,7 @@ impl PrintJob {
     pub(crate) fn into_parts(self) -> PrintJobParts {
         use RasterCommand as RC;
 
-        let media_settings = MediaSettings::new(self.media);
+        let media_settings = MediaSettings::from(self.media);
 
         let mut page_data = Vec::new();
 

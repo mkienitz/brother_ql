@@ -136,10 +136,10 @@ macro_rules! media_settings {
     };
 }
 
-impl MediaSettings {
+impl From<Media> for MediaSettings {
     /// Create media settings for a specific media type
-    pub(crate) const fn new(media: Media) -> Self {
-        match media {
+    fn from(value: Media) -> Self {
+        match value {
             Media::C12 => media_settings!(continuous, 12, 106, 585),
             Media::C29 => media_settings!(continuous, 29, 306, 408),
             Media::C38 => media_settings!(continuous, 38, 413, 295),
