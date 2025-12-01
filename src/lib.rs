@@ -1,14 +1,34 @@
-//! This is a crate to convert image data to the Raster Command binary data understood by
-//! Brother QL series label printers.
+//! Rust driver for Brother QL series label printers
 //!
-//! * It is still very much work-in-progress so some bugs might still exist.
-//! * Many Brother QL models are supported (5xx, 6xx, 7xx, 8xx series), and other printers should be relatively easy to add
-//! * The two-color (red and black) printing mode is supported when using a printer with this
-//!   capability
-//! * The image is represented by [`DynamicImage`][image::DynamicImage] from the [image] crate
-//! * For more details, check the [official Raster Command Reference](https://download.brother.com/welcome/docp100278/cv_ql800_eng_raster_101.pdf)
+//! Convert images to Brother QL Raster Command binary data and print labels via USB or kernel drivers.
 //!
-//! # Example: Printing via an USB connection
+//! # Features
+//!
+//! - **Print directly** via USB ([`UsbConnection`](connection::UsbConnection)) or Linux kernel driver ([`KernelConnection`](connection::KernelConnection))
+//! - **Compile to file** for network printing or debugging
+//! - **Multiple label types** - Continuous rolls and die-cut labels in various sizes
+//! - **Two-color printing** - Black/red support on compatible printers
+//! - **Full status monitoring** - Check errors, media type, and printer state
+//!
+//! # Supported Printers
+//!
+//! Brother QL series: **5xx** (QL-560, QL-570, QL-580N), **6xx** (QL-600, QL-650TD),
+//! **7xx** (QL-700, QL-710W, QL-720NW), **8xx** (QL-800, QL-810W, QL-820NWB)
+//!
+//! See [`printer`] module for complete list and testing status.
+//!
+//! # Feature Flags
+//!
+//! - **`usb`** (optional) - Enables USB printing via the `rusb` crate. Provides [`UsbConnection`](connection::UsbConnection)
+//!   and [`UsbConnectionInfo`](connection::UsbConnectionInfo).
+//! - **`serde`** (optional) - Enables serialization support for [`Media`] and [`CutBehavior`](printjob::CutBehavior).
+//!
+//! The crate has **no default features**. Basic print job compilation and [`KernelConnection`](connection::KernelConnection)
+//! work without any features enabled.
+//!
+//! # Quick Start
+//!
+//! ## USB Printing (requires `usb` feature)
 //!
 //! ```no_run
 //! use brother_ql::{
@@ -101,6 +121,38 @@
 //! ```
 //!
 //! See [`PrintJob`] and [`PrintJobBuilder`](printjob::PrintJobBuilder) for defaults and all options.
+//!
+//! # Status Monitoring
+//!
+//! Check printer status, errors, and media information:
+//!
+//! ```no_run
+//! # use brother_ql::connection::{PrinterConnection, UsbConnection, UsbConnectionInfo};
+//! # use brother_ql::printer::PrinterModel;
+//! # fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! # let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+//! # let mut connection = UsbConnection::open(info)?;
+//! let status = connection.get_status()?;
+//!
+//! println!("Model: {:?}", status.model);
+//! println!("Media: {}mm wide", status.media_width);
+//!
+//! if status.has_errors() {
+//!     eprintln!("Errors: {:?}", status.errors);
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! See [`status`] module for complete status information.
+//!
+//! # References
+//!
+//! - [Official Raster Command Reference](https://download.brother.com/welcome/docp100278/cv_ql800_eng_raster_101.pdf)
+//! - Images are processed using the [`image`] crate
+//!
+//! [`Media`]: media::Media
+//! [`PrintJob`]: printjob::PrintJob
 
 mod commands;
 pub mod connection;

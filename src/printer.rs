@@ -1,4 +1,50 @@
 //! Printer model definitions and USB configuration
+//!
+//! This module defines all supported Brother QL printer models and their USB/status identifiers.
+//!
+//! # Supported Printers
+//!
+//! ## 5xx Series
+//! - [`PrinterModel::QL560`]
+//! - [`PrinterModel::QL570`]
+//! - [`PrinterModel::QL580N`]
+//!
+//! ## 6xx Series
+//! - [`PrinterModel::QL600`]
+//! - [`PrinterModel::QL650TD`]
+//!
+//! ## 7xx Series
+//! - [`PrinterModel::QL700`] ✅ (tested and confirmed working)
+//! - [`PrinterModel::QL710W`]
+//! - [`PrinterModel::QL720NW`]
+//!
+//! ## 8xx Series
+//! - [`PrinterModel::QL800`]
+//! - [`PrinterModel::QL810W`]
+//! - [`PrinterModel::QL820NWB`] ✅ (tested and confirmed working)
+//!
+//! # USB Identification
+//!
+//! All Brother QL printers use vendor ID `0x04f9` (Brother Industries, Ltd).
+//! Each model has a unique product ID for USB enumeration.
+//!
+//! # Usage
+//!
+//! With USB connections:
+//! ```no_run
+//! # use brother_ql::{connection::UsbConnectionInfo, printer::PrinterModel};
+//! let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+//! ```
+//!
+//! Models are also reported in [`StatusInformation`](crate::status::StatusInformation):
+//! ```no_run
+//! # use brother_ql::connection::PrinterConnection;
+//! # fn example(mut conn: impl PrinterConnection) -> Result<(), Box<dyn std::error::Error>> {
+//! let status = conn.get_status()?;
+//! println!("Printer model: {:?}", status.model);
+//! # Ok(())
+//! # }
+//! ```
 
 use crate::error::StatusParsingError;
 

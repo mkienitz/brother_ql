@@ -14,8 +14,13 @@ pub(crate) enum ColorPower {
     HighEnergy,
 }
 
+/// Various mode settings reported by the printer
+///
+/// Part of the printer's status information, indicating operational modes.
+/// Currently only reports auto-cut setting.
 #[derive(Debug, Clone, Copy)]
 pub struct VariousModeSettings {
+    /// Whether automatic cutting is enabled
     pub auto_cut: bool,
 }
 

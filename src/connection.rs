@@ -1,7 +1,32 @@
 //! Printer connection types and traits
 //!
-//! This module provides connection abstractions for communicating with Brother QL printers.
-//! Currently supports USB connections, with network connections planned for the future.
+//! This module provides connection abstractions for communicating with Brother QL printers
+//! via different transport methods.
+//!
+//! # Connection Types
+//!
+//! - [`UsbConnection`] - Direct USB communication (requires `usb` feature)
+//! - [`KernelConnection`] - Uses Linux kernel USB printer driver (no features required)
+//!
+//! All connection types implement the [`PrinterConnection`] trait, which provides
+//! high-level methods like [`print()`](PrinterConnection::print) and
+//! [`get_status()`](PrinterConnection::get_status).
+//!
+//! # Choosing a Connection Type
+//!
+//! **Use [`UsbConnection`] when:**
+//! - You need cross-platform support (Windows, macOS, Linux)
+//! - You want full control over USB communication
+//! - You need detailed device enumeration
+//!
+//! **Use [`KernelConnection`] when:**
+//! - You're on Linux and want minimal dependencies
+//! - The kernel USB printer driver (`usblp`) is already loaded
+//! - You want to avoid external USB library dependencies
+//!
+//! # Future
+//!
+//! Network connection support is planned for future releases.
 
 mod kernel_connection;
 mod printer_connection;

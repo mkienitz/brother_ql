@@ -196,10 +196,14 @@ pub trait PrinterConnection: ConnectionImpl {
     /// to the printer, waiting for status confirmations at each stage.
     ///
     /// # Errors
-    /// Returns an error if:
+    /// Returns [`PrintError`] if:
     /// - Communication with the printer fails (connection-type specific)
     /// - The printer reports an error (paper jam, out of media, etc.) or an unexpected state
     /// - Status information sent by the printer fails during printing
+    ///
+    /// The [`page_no`](PrintError::page_no) field indicates where the error occurred:
+    /// - `0`: Pre-print validation (preamble, initial status check, media validation)
+    /// - `1+`: Specific page number that failed during printing
     ///
     /// # Example
     /// ```no_run
@@ -305,7 +309,7 @@ pub trait PrinterConnection: ConnectionImpl {
     /// # Example
     /// ```no_run
     /// # use brother_ql::{
-    /// #     connection::{UsbConnection, UsbConnectionInfo},
+    /// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
     /// #     printer::PrinterModel,
     /// # };
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {

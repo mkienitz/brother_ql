@@ -110,7 +110,7 @@ pub struct StatusParsingError {
 ///
 /// Generic over the connection error type `E` (e.g., [`UsbError`] or [`KernelError`]).
 ///
-/// Returned by `get_status` methods on connection types.
+/// Returned by [`get_status`](crate::connection::PrinterConnection::get_status`).
 #[derive(Error, Debug)]
 pub enum StatusError<E: ConnectionError> {
     /// Connection error

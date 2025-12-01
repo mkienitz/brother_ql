@@ -26,7 +26,7 @@ bitflags! {
 /// # Example
 /// ```no_run
 /// # use brother_ql::{
-/// #     connection::{UsbConnection, UsbConnectionInfo},
+/// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
 /// #     printer::PrinterModel,
 /// #     status::ErrorFlags,
 /// # };
@@ -208,7 +208,7 @@ impl TryFrom<u8> for Notification {
 /// # Example
 /// ```no_run
 /// # use brother_ql::{
-/// #     connection::{UsbConnection, UsbConnectionInfo},
+/// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
 /// #     printer::PrinterModel,
 /// # };
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -258,7 +258,7 @@ impl StatusInformation {
     /// # Example
     /// ```no_run
     /// # use brother_ql::{
-    /// #     connection::{UsbConnection, UsbConnectionInfo},
+    /// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
     /// #     printer::PrinterModel,
     /// # };
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {

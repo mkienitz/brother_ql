@@ -1,4 +1,36 @@
-//! Definitions for the available paper media types
+//! Media type definitions and settings
+//!
+//! This module defines all supported label media types for Brother QL printers.
+//! Media types include both continuous rolls and die-cut labels in various sizes.
+//!
+//! # Media Naming Convention
+//!
+//! - **C** prefix = Continuous roll (e.g., [`Media::C62`] = 62mm continuous)
+//! - **D** prefix = Die-cut labels (e.g., [`Media::D17x54`] = 17mm × 54mm labels)
+//! - **R** suffix = Red/black two-color support (e.g., [`Media::C62R`])
+//!
+//! # Continuous vs. Die-Cut
+//!
+//! **Continuous rolls** can be cut to any length by the printer. The image height
+//! can be any size, and the printer will feed the appropriate amount of media.
+//!
+//! **Die-cut labels** are pre-cut to specific dimensions. Your image must match
+//! the exact label dimensions, or you'll get a dimension mismatch error.
+//!
+//! # Color Printing
+//!
+//! Only [`Media::C62R`] currently supports two-color (black/red) printing.
+//! All other media types support black-only printing.
+//!
+//! # Image Dimensions
+//!
+//! All media types require images to be exactly **720 pixels wide** (at 300 DPI).
+//! Height requirements vary:
+//! - **Continuous**: Any height
+//! - **Die-cut**: Exact height matching the label dimensions
+//!
+//! See [`PrintJob::from_image`](crate::printjob::PrintJob::from_image) for details.
+
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 

@@ -11,6 +11,28 @@ use super::{printer_connection::sealed::ConnectionImpl, PrinterConnection};
 const BROTHER_USB_VENDOR_ID: u16 = 0x04f9;
 
 /// USB connection parameters for a Brother QL printer
+///
+/// Contains all necessary USB parameters to establish a connection,
+/// including vendor/product IDs, endpoints, and timeout settings.
+///
+/// # Creating Connection Info
+///
+/// Use [`from_model`](Self::from_model) for known printer models:
+/// ```no_run
+/// # use brother_ql::{connection::UsbConnectionInfo, printer::PrinterModel};
+/// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
+/// ```
+///
+/// Or use [`discover`](Self::discover) to auto-detect:
+/// ```no_run
+/// # use brother_ql::connection::UsbConnectionInfo;
+/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// if let Some(info) = UsbConnectionInfo::discover()? {
+///     println!("Found printer!");
+/// }
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UsbConnectionInfo {
     /// USB vendor ID (typically 0x04f9 for Brother Industries, Ltd)
@@ -37,8 +59,8 @@ impl UsbConnectionInfo {
     /// # Example
     /// ```no_run
     /// # use brother_ql::{connection::UsbConnectionInfo, printer::PrinterModel};
+    /// // Create connection info for a specific model
     /// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-    /// assert_eq!(info.vendor_id, 0x04f9); // Brother vendor ID
     /// ```
     #[must_use]
     pub const fn from_model(model: PrinterModel) -> Self {
@@ -77,7 +99,21 @@ impl UsbConnectionInfo {
     }
 }
 
-/// USB connection to a Brother QL printer
+/// Active USB connection to a Brother QL printer
+///
+/// Manages the USB device handle and provides read/write operations.
+/// The connection automatically detaches and reattaches kernel drivers as needed.
+///
+/// Implements [`PrinterConnection`] trait for high-level printing operations.
+///
+/// # Cleanup
+///
+/// The USB interface is automatically released and the kernel driver reattached
+/// when the connection is dropped.
+///
+/// # Platform Support
+///
+/// Cross-platform via the `rusb` library. Requires the `usb` feature flag.
 pub struct UsbConnection {
     handle: DeviceHandle<Context>,
     interface: u8,
