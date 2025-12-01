@@ -6,7 +6,7 @@ use crate::error::StatusParsingError;
 
 /// This enum represents the available paper types.
 #[cfg_attr(feature = "serde", derive(Deserialize))]
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, strum::EnumIter)]
 pub enum Media {
     /// Continous 12mm wide roll
     C12,

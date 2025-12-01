@@ -16,6 +16,7 @@ image = "0.25.2"
 nix = { version = "0.30.1", features = ["poll"] }
 rusb = { version = "0.9", optional = true }
 serde = { version = "1.0.210", features = ["derive"], optional = true }
+strum = { version = "0.27.2", features = ["derive"] }
 thiserror = "2.0.17"
 tracing = "0.1.41"
 

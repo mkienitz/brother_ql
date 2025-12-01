@@ -12,7 +12,7 @@
 
 use thiserror::Error;
 
-use crate::status::ErrorFlags;
+use crate::{media::Media, status::ErrorFlags};
 
 /// Errors related to print job validation
 ///
@@ -120,6 +120,7 @@ pub enum StatusError<E: ConnectionError> {
     /// Printer did not respond after retries
     #[error("Printer did not respond with a status information reply after being queried")]
     NoResponse,
+
     /// Status parsing error (malformed status bytes)
     #[error(transparent)]
     Parsing(StatusParsingError),
@@ -147,6 +148,18 @@ pub enum ProtocolError {
         actual_type: crate::status::StatusType,
         /// Actual phase received
         actual_phase: crate::status::Phase,
+    },
+
+    /// Media type mismatch between print job and installed media
+    ///
+    /// This error occurs when the printer has different media installed than what
+    /// the print job requires (e.g., trying to print on 62mm tape when 29mm is loaded).
+    #[error("Print job requires {expected_media:?} tape but printer reported {reported_media:?}")]
+    MediaMismatch {
+        /// Media type required by the print job
+        expected_media: Media,
+        /// Media type reported by the printer (None if unable to determine)
+        reported_media: Option<Media>,
     },
 }
 
