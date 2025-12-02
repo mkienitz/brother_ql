@@ -6,7 +6,7 @@
 use bitflags::bitflags;
 
 use crate::{
-    commands::VariousModeSettings, error::StatusParsingError, media::MediaType,
+    commands::VariousModeSettings, error::StatusParsingError, media::LabelType,
     printer::PrinterModel,
 };
 
@@ -237,7 +237,7 @@ pub struct StatusInformation {
     /// Media width in millimeters
     pub media_width: u8,
     /// Media type (continuous or die-cut), if detected
-    pub media_type: Option<MediaType>,
+    pub media_type: Option<LabelType>,
     /// Various mode settings active on the printer
     pub mode: VariousModeSettings,
     /// Media length in millimeters (only relevant for die-cut labels)
@@ -312,7 +312,7 @@ impl TryFrom<&[u8]> for StatusInformation {
         let media_width = status[10];
         let media_type = match status[11] {
             0x00 => None,
-            other => Some(MediaType::try_from(other)?),
+            other => Some(LabelType::try_from(other)?),
         };
         check_fixed_field(12, "Reserved", 0x00)?;
         check_fixed_field(13, "Reserved", 0x00)?;

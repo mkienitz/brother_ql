@@ -5,7 +5,7 @@ use image::DynamicImage;
 
 use crate::{
     error::PrintJobCreationError,
-    media::{Media, MediaSettings, MediaType},
+    media::{LabelType, Media},
     printjob::{CutBehavior, PrintJob},
 };
 
@@ -61,9 +61,9 @@ impl PrintJobBuilder<NoImages> {
             high_dpi: false,
             compressed: false,
             quality_priority: true,
-            cut_behavior: match MediaSettings::from(media).media_type {
-                MediaType::Continuous => CutBehavior::CutEach,
-                MediaType::DieCut => CutBehavior::CutAtEnd,
+            cut_behavior: match media.label_type() {
+                LabelType::Continuous => CutBehavior::CutEach,
+                LabelType::DieCut => CutBehavior::CutAtEnd,
             },
             _state: PhantomData,
         }
@@ -80,9 +80,9 @@ impl PrintJobBuilder<NoImages> {
             high_dpi: self.high_dpi,
             compressed: self.compressed,
             quality_priority: self.quality_priority,
-            cut_behavior: match MediaSettings::from(self.media).media_type {
-                MediaType::Continuous => CutBehavior::CutEach,
-                MediaType::DieCut => CutBehavior::CutAtEnd,
+            cut_behavior: match self.media.label_type() {
+                LabelType::Continuous => CutBehavior::CutEach,
+                LabelType::DieCut => CutBehavior::CutAtEnd,
             },
             _state: PhantomData,
         }

@@ -20,7 +20,7 @@ pub(super) mod sealed {
     use crate::{
         commands::RasterCommand,
         error::{ConnectionError, ProtocolError, StatusError},
-        media::{LengthInfo, Media, MediaSettings},
+        media::Media,
         status::{Phase, StatusInformation, StatusType},
     };
 
@@ -115,12 +115,11 @@ pub(super) mod sealed {
         ) -> Result<(), ProtocolError> {
             // Validate that the printer has the correct media installed
             fn status_matches_media(status: &StatusInformation, media: Media) -> bool {
-                let media_settings = MediaSettings::from(media);
-                let media_type_matches = status.media_type == Some(media_settings.media_type);
-                let media_width_matches = status.media_width == media_settings.width_mm;
-                let media_length_matches = match media_settings.length_info {
-                    LengthInfo::Endless => status.media_length == 0,
-                    LengthInfo::Fixed { length_mm, .. } => status.media_length == length_mm,
+                let media_type_matches = status.media_type == Some(media.label_type());
+                let media_width_matches = status.media_width == media.width_mm();
+                let media_length_matches = match media.length_mm() {
+                    None => status.media_length == 0,
+                    Some(length_mm) => status.media_length == length_mm,
                 };
                 media_type_matches && media_width_matches && media_length_matches
             }

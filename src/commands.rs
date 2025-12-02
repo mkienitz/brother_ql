@@ -1,7 +1,4 @@
-use crate::{
-    error::StatusParsingError,
-    media::{LengthInfo, MediaSettings},
-};
+use crate::{error::StatusParsingError, media::Media};
 
 pub(crate) enum DynamicCommandMode {
     // EscP,
@@ -74,7 +71,7 @@ pub(crate) enum RasterCommand {
         high_dpi: bool,
     },
     PrintInformation {
-        media_settings: MediaSettings,
+        media: Media,
         quality_priority: bool,
         recovery_on: bool,
         no_lines: u32,
@@ -178,7 +175,7 @@ impl From<RasterCommand> for Vec<u8> {
                 vec![0x1b, 0x69, 0x4b, flags]
             }
             RC::PrintInformation {
-                media_settings,
+                media,
                 quality_priority,
                 recovery_on,
                 no_lines,
@@ -186,18 +183,17 @@ impl From<RasterCommand> for Vec<u8> {
             } => {
                 // Media Type and Media Length are always valid
                 let mut valid_flag = 0x06;
-                let media_width = media_settings.width_mm;
+                let media_width = media.width_mm();
                 let mut media_length = 0x00;
                 let media_type;
-                match media_settings.length_info {
-                    LengthInfo::Endless => {
-                        media_type = 0x0a;
-                    }
-                    LengthInfo::Fixed { length_mm, .. } => {
-                        media_type = 0x0b;
-                        media_length = length_mm;
-                        valid_flag |= 0x8;
-                    }
+                if let Some(length_mm) = media.length_mm() {
+                    // DieCut has length
+                    media_type = 0x0b;
+                    media_length = length_mm;
+                    valid_flag |= 0x8;
+                } else {
+                    // Continuuous
+                    media_type = 0x0a;
                 }
                 if quality_priority {
                     valid_flag |= 0x40;

@@ -17,85 +17,29 @@
 //! **Die-cut labels** are pre-cut to specific dimensions. Your image must match
 //! the exact label dimensions, or you'll get a dimension mismatch error.
 //!
+//! # Image Dimensions
+//!
+//! The required image dimensions in pixels are documented in [`Media`]
+//!
 //! # Color Printing
 //!
 //! Only [`Media::C62R`] currently supports two-color (black/red) printing.
 //! All other media types support black-only printing.
 //!
-//! # Image Dimensions
-//!
-//! All media types require images to be exactly **720 pixels wide** (at 300 DPI).
-//! Height requirements vary:
-//! - **Continuous**: Any height
-//! - **Die-cut**: Exact height matching the label dimensions
-//!
 //! See [`PrintJob::from_image`](crate::printjob::PrintJob::from_image) for details.
-
-#[cfg(feature = "serde")]
-use serde::Deserialize;
 
 use crate::error::StatusParsingError;
 
-/// This enum represents the available paper types.
-#[cfg_attr(feature = "serde", derive(Deserialize))]
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, strum::EnumIter)]
-pub enum Media {
-    /// Continous 12mm wide roll
-    C12,
-    /// Continous 29mm wide roll
-    C29,
-    /// Continous 38mm wide roll
-    C38,
-    /// Continous 50mm wide roll
-    C50,
-    /// Continous 54mm wide roll
-    C54,
-    /// Continous 62mm wide roll
-    C62,
-    /// Continous 62mm wide roll with dual-color support (black/red)
-    C62R,
-    /// Die-cut 17x54mm labels
-    D17x54,
-    /// Die-cut 17x87mm labels
-    D17x87,
-    /// Die-cut 23x23mm labels
-    D23x23,
-    /// Die-cut 29x42mm labels
-    D29x42,
-    /// Die-cut 29x90mm labels
-    D29x90,
-    /// Die-cut 38x90mm labels
-    D38x90,
-    /// Die-cut 39x48mm labels
-    D39x48,
-    /// Die-cut 52x29mm labels
-    D52x29,
-    /// Die-cut 54x29mm labels
-    D54x29,
-    /// Die-cut 60x86mm labels
-    D60x86,
-    /// Die-cut 62x29mm labels
-    D62x29,
-    /// Die-cut 62x60mm labels
-    D62x100,
-    /// Die-cut 12mm circle labels
-    D12,
-    /// Die-cut 24mm circle labels
-    D24,
-    /// Die-cut 58mm circle labels
-    D58,
-}
-
-/// Media type of the label roll
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum MediaType {
-    /// Continuous label roll
+/// Type of label media
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum LabelType {
+    /// Continuous roll media (cut to any length)
     Continuous,
-    /// Die-cut labels with
+    /// Die-cut pre-sized labels
     DieCut,
 }
 
-impl TryFrom<u8> for MediaType {
+impl TryFrom<u8> for LabelType {
     type Error = StatusParsingError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
@@ -110,90 +54,303 @@ impl TryFrom<u8> for MediaType {
     }
 }
 
-/// Length information for media
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub(crate) enum LengthInfo {
-    /// Continuous media has no fixed length
-    Endless,
-    /// Fixed-length media (die-cut labels)
-    Fixed {
-        /// Length in dots
-        length_dots: u32,
-        /// Length in millimeters
-        length_mm: u8,
+use strum::EnumIter;
+
+macro_rules! define_media {
+    // Optional literal → Option
+    (@opt $val:literal) => { Some($val) };
+    (@opt) => { None };
+
+    // Bullet list formatting
+    (@products [$($product:literal),+]) => {
+        concat!($("\n- ", $product),+)
+    };
+
+    // Continuous tape
+    (@ty_doc Continuous, , , $wmm:literal, $wpx:literal) => {
+        concat!(
+            "Continuous tape, ", $wmm, "mm (", $wpx, "px) wide"
+        )
+    };
+
+    // DieCut labels
+    (@ty_doc DieCut, $lmm:literal, $lpx:literal, $wmm:literal, $wpx:literal) => {
+        concat!(
+            "Die-cut labels, WxH ", $wmm, "x", $lmm, "mm (", $wpx, "x", $lpx, "px)"
+        )
+    };
+
+    (
+        $(
+            $name:ident {
+                products: [$($product:literal),+ $(,)?],
+                label_type: $label_type:ident,
+                width_mm: $width_mm:literal,
+                width_dots: $width_dots:literal,
+                left_margin: $left_margin:literal,
+                supports_color: $supports_color:literal,
+                $( length_mm: $length_mm:literal, length_dots: $length_dots:literal, )?
+            }
+        ),+ $(,)?
+    ) => {
+        /// Available media types for Brother QL printers
+        #[derive(Copy, PartialEq, Clone, Debug, EnumIter)]
+        pub enum Media {
+            $(
+                #[doc = concat!(
+                    define_media!(
+                        @ty_doc
+                        $label_type,
+                        $( $length_mm )?,
+                        $( $length_dots )?,
+                        $width_mm,
+                        $width_dots
+                    ),
+                    "\n\n**Compatible products:**",
+                    define_media!(@products [$($product),+])
+                )]
+                $name,
+            )+
+        }
+
+        impl Media {
+            /// Returns the label type (`Continuous` or `DieCut`)
+            pub(crate) const fn label_type(self) -> LabelType {
+                match self { $( Media::$name => LabelType::$label_type ),+ }
+            }
+            /// Returns the media width in millimeters
+            pub(crate) const fn width_mm(self) -> u8 {
+                match self { $( Media::$name => $width_mm ),+ }
+            }
+            /// Returns the media width in dots (at 300 DPI)
+            pub(crate) const fn width_dots(self) -> u32 {
+                match self { $( Media::$name => $width_dots ),+ }
+            }
+            /// Returns the left margin in dots
+            pub(crate) const fn left_margin(self) -> u32 {
+                match self { $( Media::$name => $left_margin ),+ }
+            }
+            /// Returns whether this media supports red/black two-color printing
+            pub(crate) const fn supports_color(self) -> bool {
+                match self { $( Media::$name => $supports_color ),+ }
+            }
+            /// Returns the label length in millimeters (`None` for continuous media)
+            pub(crate) const fn length_mm(self) -> Option<u8> {
+                match self { $( Media::$name => define_media!(@opt $( $length_mm )? ) ),+ }
+            }
+            /// Returns the label length in dots (None for continuous media)
+            pub(crate) const fn length_dots(self) -> Option<u32> {
+                match self { $( Media::$name => define_media!(@opt $( $length_dots )? ) ),+ }
+            }
+        }
+    };
+}
+
+define_media! {
+    C12 {
+        products: ["DK-22214 Tape"],
+        label_type: Continuous,
+        width_mm: 12,
+        width_dots: 106,
+        left_margin: 585,
+        supports_color: false,
     },
-}
-
-/// Physical settings and dimensions for a media type
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub(crate) struct MediaSettings {
-    /// Type of label roll (continuous or die-cut)
-    pub(crate) media_type: MediaType,
-    /// Width in dots
-    pub(crate) width_dots: u32,
-    /// Width in millimeters
-    pub(crate) width_mm: u8,
-    /// Length information
-    pub(crate) length_info: LengthInfo,
-    /// Left margin in dots
-    pub(crate) left_margin: u32,
-    /// Whether this media supports color printing
-    pub(crate) color: bool,
-}
-
-/// Helper macro for constructing `MediaSettings`
-macro_rules! media_settings {
-    // Internal builder
-    (@build $media_type:expr, $length_info:expr, $width_mm:expr, $width_dots:expr, $left_margin:expr, $color:expr) => {
-        MediaSettings {
-            media_type: $media_type,
-            width_dots: $width_dots,
-            width_mm: $width_mm,
-            length_info: $length_info,
-            left_margin: $left_margin,
-            color: $color,
-        }
-    };
-    // Continuous (default: no color)
-    (continuous, $width_mm:expr, $width_dots:expr, $left_margin:expr) => {
-        media_settings!(@build MediaType::Continuous, LengthInfo::Endless, $width_mm, $width_dots, $left_margin, false)
-    };
-    // Continuous with color
-    (continuous color, $width_mm:expr, $width_dots:expr, $left_margin:expr) => {
-        media_settings!(@build MediaType::Continuous, LengthInfo::Endless, $width_mm, $width_dots, $left_margin, true)
-    };
-    // Die-cut (default: no color)
-    (die_cut, $width_mm:expr, $width_dots:expr, $length_mm:expr, $length_dots:expr, $left_margin:expr) => {
-        media_settings!(@build MediaType::DieCut, LengthInfo::Fixed { length_dots: $length_dots, length_mm: $length_mm }, $width_mm, $width_dots, $left_margin, false)
-    };
-}
-
-impl From<Media> for MediaSettings {
-    /// Create media settings for a specific media type
-    fn from(value: Media) -> Self {
-        match value {
-            Media::C12 => media_settings!(continuous, 12, 106, 585),
-            Media::C29 => media_settings!(continuous, 29, 306, 408),
-            Media::C38 => media_settings!(continuous, 38, 413, 295),
-            Media::C50 => media_settings!(continuous, 50, 554, 154),
-            Media::C54 => media_settings!(continuous, 54, 590, 130),
-            Media::C62 => media_settings!(continuous, 62, 696, 12),
-            Media::C62R => media_settings!(continuous color, 62, 696, 12),
-            Media::D17x54 => media_settings!(die_cut, 17, 165, 54, 566, 555),
-            Media::D17x87 => media_settings!(die_cut, 17, 165, 87, 956, 555),
-            Media::D23x23 => media_settings!(die_cut, 23, 236, 23, 202, 442),
-            Media::D29x42 => media_settings!(die_cut, 29, 306, 42, 425, 408),
-            Media::D29x90 => media_settings!(die_cut, 29, 306, 90, 991, 408),
-            Media::D38x90 => media_settings!(die_cut, 38, 413, 90, 991, 295),
-            Media::D39x48 => media_settings!(die_cut, 39, 425, 48, 495, 289),
-            Media::D52x29 => media_settings!(die_cut, 52, 578, 29, 271, 142),
-            Media::D54x29 => media_settings!(die_cut, 54, 602, 29, 271, 59),
-            Media::D60x86 => media_settings!(die_cut, 60, 672, 86, 954, 24),
-            Media::D62x29 => media_settings!(die_cut, 62, 696, 29, 271, 12),
-            Media::D62x100 => media_settings!(die_cut, 62, 696, 100, 1109, 12),
-            Media::D12 => media_settings!(die_cut, 24, 94, 12, 94, 513),
-            Media::D24 => media_settings!(die_cut, 24, 236, 24, 236, 442),
-            Media::D58 => media_settings!(die_cut, 58, 618, 58, 618, 51),
-        }
-    }
+    C29 {
+        products: ["DK-22210 Tape", "DK-22211 Film Tape"],
+        label_type: Continuous,
+        width_mm: 29,
+        width_dots: 306,
+        left_margin: 408,
+        supports_color: false,
+    },
+    C38 {
+        products: ["DK-22225 Tape"],
+        label_type: Continuous,
+        width_mm: 38,
+        width_dots: 413,
+        left_margin: 295,
+        supports_color: false,
+    },
+    C50 {
+        products: ["DK-22223 Tape"],
+        label_type: Continuous,
+        width_mm: 50,
+        width_dots: 554,
+        left_margin: 154,
+        supports_color: false,
+    },
+    C54 {
+        products: ["DK-N55224 Non-Adhesive Tape"],
+        label_type: Continuous,
+        width_mm: 54,
+        width_dots: 590,
+        left_margin: 130,
+        supports_color: false,
+    },
+    C62 {
+        products: ["DK-22205 Tape", "DK-22212 Film Tape", "DK-22606 Yellow Film Tape", "DDK-22213 Transparent Tape", "DK-44205 Removable Tape", "DK-44605 Yellow Removable Tape"],
+        label_type: Continuous,
+        width_mm: 62,
+        width_dots: 696,
+        left_margin: 12,
+        supports_color: false,
+    },
+    C62R {
+        products: ["DK-22251 Red/Black Tape"],
+        label_type: Continuous,
+        width_mm: 62,
+        width_dots: 696,
+        left_margin: 12,
+        supports_color: true,
+    },
+    D17x54 {
+        products: ["DK-11204 Labels"],
+        label_type: DieCut,
+        width_mm: 17,
+        width_dots: 165,
+        left_margin: 555,
+        supports_color: false,
+        length_mm: 54,
+        length_dots: 566,
+    },
+    D17x87 {
+        products: ["DK-11203 File Folder Labels"],
+        label_type: DieCut,
+        width_mm: 17,
+        width_dots: 165,
+        left_margin: 555,
+        supports_color: false,
+        length_mm: 87,
+        length_dots: 912,
+    },
+    D23x23 {
+        products: ["DK-11221 Square Labels"],
+        label_type: DieCut,
+        width_mm: 23,
+        width_dots: 236,
+        left_margin: 442,
+        supports_color: false,
+        length_mm: 23,
+        length_dots: 236,
+    },
+    D29x42 {
+        products: ["DK-11215 Labels (⚠️ no official data)"],
+        label_type: DieCut,
+        width_mm: 29,
+        width_dots: 306,
+        left_margin: 408,
+        supports_color: false,
+        length_mm: 42,
+        length_dots: 442,
+    },
+    D29x90 {
+        products: ["DK-11201 Standard Address Labels"],
+        label_type: DieCut,
+        width_mm: 29,
+        width_dots: 306,
+        left_margin: 408,
+        supports_color: false,
+        length_mm: 90,
+        length_dots: 944,
+    },
+    D38x90 {
+        products: ["DK-11208 Large Address Labels"],
+        label_type: DieCut,
+        width_mm: 38,
+        width_dots: 413,
+        left_margin: 295,
+        supports_color: false,
+        length_mm: 90,
+        length_dots: 944,
+    },
+    D39x48 {
+        products: ["DK-11220 Labels (⚠️ no official data)"],
+        label_type: DieCut,
+        width_mm: 39,
+        width_dots: 425,
+        left_margin: 289,
+        supports_color: false,
+        length_mm: 48,
+        length_dots: 512,
+    },
+    D52x29 {
+        products: ["DK-11226 Labels (⚠️ no official data)"],
+        label_type: DieCut,
+        width_mm: 52,
+        width_dots: 578,
+        left_margin: 142,
+        supports_color: false,
+        length_mm: 29,
+        length_dots: 318,
+    },
+    D54x29 {
+        products: ["DK-3235 Removable"],
+        label_type: DieCut,
+        width_mm: 54,
+        width_dots: 602,
+        left_margin: 59,
+        supports_color: false,
+        length_mm: 29,
+        length_dots: 318,
+    },
+    D60x86 {
+        products: ["DK-11234 Name Badge Labels"],
+        label_type: DieCut,
+        width_mm: 60,
+        width_dots: 672,
+        left_margin: 24,
+        supports_color: false,
+        length_mm: 86,
+        length_dots: 902,
+    },
+    D62x29 {
+        products: ["DK-11209 Small Address Labels"],
+        label_type: DieCut,
+        width_mm: 62,
+        width_dots: 696,
+        left_margin: 12,
+        supports_color: false,
+        length_mm: 29,
+        length_dots: 318,
+    },
+    D62x100 {
+        products: ["DK-11202 Shipping Labels"],
+        label_type: DieCut,
+        width_mm: 62,
+        width_dots: 696,
+        left_margin: 12,
+        supports_color: false,
+        length_mm: 100,
+        length_dots: 1104,
+    },
+    D12 {
+        products: ["DK-11219 Round Labels"],
+        label_type: DieCut,
+        width_mm: 12,
+        width_dots: 94,
+        left_margin: 513,
+        supports_color: false,
+        length_mm: 12,
+        length_dots: 94,
+    },
+    D24 {
+        products: ["DK-11218 Round Labels"],
+        label_type: DieCut,
+        width_mm: 24,
+        width_dots: 236,
+        left_margin: 442,
+        supports_color: false,
+        length_mm: 24,
+        length_dots: 236,
+    },
+    D58 {
+        products: ["DK-11207 CD/DVD Labels"],
+        label_type: DieCut,
+        width_mm: 58,
+        width_dots: 618,
+        left_margin: 51,
+        supports_color: false,
+        length_mm: 58,
+        length_dots: 630,
+    },
 }

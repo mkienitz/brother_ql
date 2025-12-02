@@ -7,7 +7,7 @@ use crate::{
         ColorPower, DynamicCommandMode, RasterCommand, RasterCommands, VariousModeSettings,
     },
     error::PrintJobCreationError,
-    media::{LengthInfo, Media, MediaSettings, MediaType},
+    media::{LabelType, Media},
     raster_image::RasterImage,
 };
 
@@ -92,10 +92,9 @@ impl PrintJob {
         images: Vec<DynamicImage>,
         media: Media,
     ) -> Result<Self, PrintJobCreationError> {
-        let media_settings = MediaSettings::from(media);
         let raster_images = images
             .into_iter()
-            .map(|img| RasterImage::new(img, media_settings))
+            .map(|img| RasterImage::new(img, media))
             .collect::<Result<Vec<RasterImage>, _>>()?;
 
         Ok(Self {
@@ -105,9 +104,9 @@ impl PrintJob {
             high_dpi: false,
             compressed: false,
             quality_priority: true,
-            cut_behavior: match media_settings.media_type {
-                MediaType::Continuous => CutBehavior::CutEach,
-                MediaType::DieCut => CutBehavior::CutAtEnd,
+            cut_behavior: match media.label_type() {
+                LabelType::Continuous => CutBehavior::CutEach,
+                LabelType::DieCut => CutBehavior::CutAtEnd,
             },
         })
     }
@@ -117,7 +116,6 @@ impl PrintJob {
     }
 
     pub(crate) fn into_parts(self) -> PrintJobParts {
-        let media_settings = MediaSettings::from(self.media);
         let mut page_data = Vec::new();
 
         for copy_no in 0..self.no_copies {
@@ -132,7 +130,7 @@ impl PrintJob {
                 });
                 page_commands.add(RC::SwitchAutomaticStatusNotificationMode { notify: true });
                 page_commands.add(RC::PrintInformation {
-                    media_settings,
+                    media: self.media,
                     quality_priority: match raster_image {
                         RasterImage::Monochrome { .. } => self.quality_priority,
                         RasterImage::TwoColor { .. } => false,
@@ -155,7 +153,7 @@ impl PrintJob {
                     _ => {}
                 }
                 page_commands.add(RC::ExpandedMode {
-                    two_color: media_settings.color,
+                    two_color: self.media.supports_color(),
                     cut_at_end: match self.cut_behavior {
                         CutBehavior::CutAtEnd => true,
                         CutBehavior::CutEvery(n) => !self.no_copies.is_multiple_of(n),
@@ -164,9 +162,9 @@ impl PrintJob {
                     high_dpi: self.high_dpi,
                 });
                 page_commands.add(RC::SpecifyMarginAmount {
-                    margin_size: match media_settings.length_info {
-                        LengthInfo::Endless => 35,
-                        LengthInfo::Fixed { .. } => 0,
+                    margin_size: match self.media.label_type() {
+                        LabelType::Continuous => 35,
+                        LabelType::DieCut => 0,
                     },
                 });
                 page_commands.add(RC::SelectCompressionMode {
