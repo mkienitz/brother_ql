@@ -54,8 +54,6 @@ impl TryFrom<u8> for LabelType {
     }
 }
 
-use strum::EnumIter;
-
 macro_rules! define_media {
     // Optional literal → Option
     (@opt $val:literal) => { Some($val) };
@@ -94,7 +92,7 @@ macro_rules! define_media {
         ),+ $(,)?
     ) => {
         /// Available media types for Brother QL printers
-        #[derive(Copy, PartialEq, Clone, Debug, EnumIter)]
+        #[derive(Copy, PartialEq, Clone, Debug, strum::EnumIter, strum::Display)]
         pub enum Media {
             $(
                 #[doc = concat!(

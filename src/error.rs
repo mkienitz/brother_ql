@@ -230,3 +230,15 @@ pub enum PrintErrorSource<E: ConnectionError> {
     #[error(transparent)]
     Protocol(#[from] ProtocolError),
 }
+
+/// Test label generation error
+///
+/// Returned when Typst compilation, rendering, or image encoding fails during test label generation.
+/// This should never occur under normal circumstances - if you encounter this error, please report it as a bug.
+#[cfg(feature = "test-labels")]
+#[derive(Error, Debug)]
+#[error("Couldn't create test-label using typst: {reason}")]
+pub struct TypstError {
+    /// Reason for failed label creation
+    pub reason: String,
+}

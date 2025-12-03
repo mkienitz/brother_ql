@@ -68,6 +68,8 @@
               pkgs.cargo-modules
               pkgs.cargo-release
               pkgs.bacon
+              pkgs.typst
+              pkgs.typstyle
             ]
             ++ (lib.optionals pkgs.stdenv.isDarwin [
               pkgs.libiconv

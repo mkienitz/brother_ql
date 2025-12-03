@@ -162,3 +162,5 @@ pub mod printer;
 pub mod printjob;
 mod raster_image;
 pub mod status;
+#[cfg(feature = "test-labels")]
+pub mod test_labels;
