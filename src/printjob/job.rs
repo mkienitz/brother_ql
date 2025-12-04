@@ -245,21 +245,21 @@ impl PrintJob {
         bytes
     }
 
-    /// Check if a specific printer model can handle this print job
-    ///
-    /// Validates printer compatibility before printing:
-    /// - The printer supports the specified media type
-    /// - The printer supports required features (e.g., color printing)
-    /// - Any other printer-specific requirements are met
-    ///
-    /// **Note**: This method is not yet implemented.
-    ///
-    /// # Errors
-    /// Will return an error if the printer model is incompatible with the print job settings.
-    pub fn check_printer_compatibility(
-        &self,
-        _model: crate::printer::PrinterModel,
-    ) -> Result<(), PrintJobCreationError> {
-        todo!("Implement printer compatibility checks")
-    }
+    // /// Check if a specific printer model can handle this print job
+    // ///
+    // /// Validates printer compatibility before printing:
+    // /// - The printer supports the specified media type
+    // /// - The printer supports required features (e.g., color printing)
+    // /// - Any other printer-specific requirements are met
+    // ///
+    // /// **Note**: This method is not yet implemented.
+    // ///
+    // /// # Errors
+    // /// Will return an error if the printer model is incompatible with the print job settings.
+    // pub fn check_printer_compatibility(
+    //     &self,
+    //     _model: crate::printer::PrinterModel,
+    // ) -> Result<(), PrintJobCreationError> {
+    //     todo!("Implement printer compatibility checks")
+    // }
 }
