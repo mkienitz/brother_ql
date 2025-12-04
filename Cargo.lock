@@ -228,7 +228,7 @@ dependencies = [
 
 [[package]]
 name = "brother_ql"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "bitflags 2.10.0",
  "custom_debug",
