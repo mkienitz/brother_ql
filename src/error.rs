@@ -74,6 +74,7 @@ pub enum UsbError {
     Rusb(#[from] rusb::Error),
 }
 
+#[cfg(feature = "usb")]
 impl ConnectionError for UsbError {}
 
 /// Kernel connection errors
