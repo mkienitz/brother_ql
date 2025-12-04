@@ -6,7 +6,15 @@ edition = "2021"
 license = "MIT"
 authors = ["Maximilian Kienitz <contact@kienitz.dev>"]
 repository = "https://github.com/mkienitz/brother_ql"
-exclude = ["flake.nix", "flake.lock", ".envrc"]
+exclude = [
+  ".envrc",
+  ".gitignore",
+  "flake.nix",
+  "flake.lock",
+  "release.toml",
+  "bacon.toml",
+  "rust-toolchain.toml",
+]
 
 
 [dependencies]
