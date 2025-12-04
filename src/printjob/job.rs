@@ -15,7 +15,7 @@ use crate::{
 ///
 /// Controls when the printer's automatic blade cuts the media.
 #[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum CutBehavior {
     /// Don't cut at all (manual cutting required)
     None,

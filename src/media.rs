@@ -93,6 +93,7 @@ macro_rules! define_media {
     ) => {
         /// Available media types for Brother QL printers
         #[derive(Copy, PartialEq, Clone, Debug, strum::EnumIter, strum::Display)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         pub enum Media {
             $(
                 #[doc = concat!(
