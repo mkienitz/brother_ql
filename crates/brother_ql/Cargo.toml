@@ -1,0 +1,60 @@
+[package]
+name = "brother_ql"
+version = "2.0.1"
+description = "Generate Brother QL Raster Command data from images"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+bitflags = "2.10.0"
+clap = { version = "4.5.53", optional = true, default-features = false, features = [
+  "derive",
+  "std",
+] }
+custom_debug = "0.6.2"
+image = "0.25.2"
+nix = { version = "0.30.1", features = ["poll"] }
+rusb = { version = "0.9", optional = true }
+serde = { version = "1.0.210", features = ["derive"], optional = true }
+strum = { version = "0.27.2", features = ["derive"] }
+thiserror = "2.0.17"
+time = { version = "0.3.44", optional = true }
+tracing = "0.1.41"
+typst = { version = "0.14.1", optional = true }
+typst-kit = { version = "0.14.1", optional = true, features = ["embed-fonts"] }
+typst-render = { version = "0.14.1", optional = true }
+
+[features]
+serde = ["dep:serde"]
+usb = ["dep:rusb"]
+test-labels = ["dep:typst", "dep:time", "dep:typst-kit", "dep:typst-render"]
+clap = ["dep:clap"]
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3.20", features = [
+  "tracing",
+  "env-filter",
+] }
+
+[[example]]
+name = "usb_print_c62"
+required-features = ["usb", "test-labels"]
+
+[[example]]
+name = "usb_status"
+required-features = ["usb"]
+
+[[example]]
+name = "generate_test_labels"
+required-features = ["test-labels"]
+
+[lints.rust]
+missing_docs = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
+[package.metadata.docs.rs]
+all-features = true

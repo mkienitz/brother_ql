@@ -1,4 +1,4 @@
-/target
+/**/target
 *.png
 *.bin
 *.pdf
@@ -6,3 +6,5 @@
 /pkg
 /.pre-commit-config.yaml
 /assets
+.claude/
+CLAUDE.md

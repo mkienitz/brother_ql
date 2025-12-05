@@ -48,10 +48,10 @@ use std::{
     path::Path,
 };
 
-use nix::poll::{poll, PollFd, PollFlags, PollTimeout};
+use nix::poll::{PollFd, PollFlags, PollTimeout, poll};
 use tracing::debug;
 
-use super::{printer_connection::sealed::ConnectionImpl, PrinterConnection};
+use super::{PrinterConnection, printer_connection::sealed::ConnectionImpl};
 use crate::error::KernelError;
 
 /// Kernel connection to a Brother QL printer

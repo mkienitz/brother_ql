@@ -2,8 +2,8 @@ use std::fmt;
 
 use custom_debug::Debug as CustomDebug;
 use image::{
-    imageops::{self, BiLevel},
     DynamicImage, GenericImageView, GrayImage, ImageBuffer, Rgb,
+    imageops::{self, BiLevel},
 };
 
 use crate::{error::PrintJobCreationError, media::Media};
@@ -40,15 +40,15 @@ impl RasterImage {
                 actual_height: height,
             });
         }
-        if let Some(length_dots) = media.length_dots() {
-            if length_dots != height {
-                return Err(PrintJobCreationError::DimensionMismatch {
-                    expected_width: media.width_dots(),
-                    actual_width: width,
-                    expected_height: Some(length_dots),
-                    actual_height: height,
-                });
-            }
+        if let Some(length_dots) = media.length_dots()
+            && length_dots != height
+        {
+            return Err(PrintJobCreationError::DimensionMismatch {
+                expected_width: media.width_dots(),
+                actual_width: width,
+                expected_height: Some(length_dots),
+                actual_height: height,
+            });
         }
         Ok(if media.supports_color() {
             Self::TwoColor {
@@ -129,12 +129,13 @@ fn create_mask(
     image::imageops::dither(&mut mask, &BiLevel);
     let (w, h) = rgb_image.dimensions();
     let right_margin = 720 - left_margin - w;
-    let extended = ImageBuffer::from_fn(720, h, |x, y| {
+
+    // Extend buffer to print head width
+    ImageBuffer::from_fn(720, h, |x, y| {
         if (right_margin..(right_margin + w)).contains(&x) {
             *mask.get_pixel(x - right_margin, y)
         } else {
             [255].into()
         }
-    });
-    extended
+    })
 }

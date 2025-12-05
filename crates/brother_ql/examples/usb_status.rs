@@ -3,7 +3,7 @@
 use std::error::Error;
 
 use brother_ql::connection::{PrinterConnection, UsbConnection, UsbConnectionInfo};
-use tracing_subscriber::{field::MakeExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, field::MakeExt};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // This example uses logging

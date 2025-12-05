@@ -52,6 +52,7 @@ macro_rules! printer_models {
     ($($name:ident ($pid:expr, $rcode:expr),)+) => {
         /// Brother QL printer models
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
         pub enum PrinterModel {
             $(
                 #[doc = stringify!($name)]

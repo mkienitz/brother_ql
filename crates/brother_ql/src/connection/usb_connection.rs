@@ -6,7 +6,7 @@ use tracing::debug;
 
 use crate::{error::UsbError, printer::PrinterModel};
 
-use super::{printer_connection::sealed::ConnectionImpl, PrinterConnection};
+use super::{PrinterConnection, printer_connection::sealed::ConnectionImpl};
 
 const BROTHER_USB_VENDOR_ID: u16 = 0x04f9;
 
@@ -88,10 +88,10 @@ impl UsbConnectionInfo {
 
         for device in devices.iter() {
             let descriptor = device.device_descriptor()?;
-            if descriptor.vendor_id() == BROTHER_USB_VENDOR_ID {
-                if let Some(model) = PrinterModel::from_product_id(descriptor.product_id()) {
-                    return Ok(Some(Self::from_model(model)));
-                }
+            if descriptor.vendor_id() == BROTHER_USB_VENDOR_ID
+                && let Some(model) = PrinterModel::from_product_id(descriptor.product_id())
+            {
+                return Ok(Some(Self::from_model(model)));
             }
         }
 

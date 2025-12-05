@@ -46,18 +46,14 @@
           lib,
           ...
         }:
-        let
-          projectName = crateName;
-          crateName = "brother_ql";
-          crateOutput = config.nci.outputs.${crateName};
-        in
         {
           nci = {
-            projects.${projectName} = {
+            projects."brother_ql" = {
               numtideDevshell = "default";
               path = ./.;
             };
-            crates.${crateName} = { };
+            crates."brother_ql" = { };
+            crates."brother_ql_cli" = { };
           };
 
           devshells.default = {
@@ -93,15 +89,19 @@
               deadnix.enable = true;
               statix.enable = true;
               nixfmt.enable = true;
-              rustfmt = {
-                enable = true;
-                edition = "2021";
-              };
+              rustfmt =
+                let
+                  toml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+                in
+                {
+                  enable = true;
+                  inherit (toml.workspace.package) edition;
+                };
               taplo.enable = true;
             };
           };
 
-          packages.default = crateOutput.packages.release;
+          packages.default = config.nci.outputs.brother_ql.packages.release;
         };
     };
 }

@@ -5,7 +5,7 @@ use std::error::Error;
 
 use brother_ql::{media::Media, test_labels::render_test_label};
 use strum::IntoEnumIterator;
-use tracing_subscriber::{field::MakeExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, field::MakeExt};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // This example uses pretty logging
