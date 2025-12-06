@@ -9,64 +9,117 @@ use brother_ql::{
     test_labels::render_test_label,
 };
 use clap::{Args, Parser, Subcommand};
+use image::DynamicImage;
 use tracing_subscriber::{EnvFilter, field::MakeExt};
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(
+    version,
+    about = "Brother QL label printer CLI",
+    long_about = "A command-line interface for printing labels and managing Brother QL series label printers.\n\nSupports printing via USB connection, kernel device drivers, and reading printer status."
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 
-    #[arg(long)]
+    #[arg(long, help = "Enable debug logging output")]
     debug: bool,
 }
 
 #[derive(Args, Debug)]
 #[group(required = true, multiple = false)]
+#[command(next_help_heading = "Printer Connection")]
 struct PrinterSelection {
-    #[arg(short, long, value_name = "PRINTER_MODEL")]
+    #[arg(
+        short,
+        long,
+        value_name = "MODEL",
+        help = "Connect to USB printer with specified model"
+    )]
     usb: Option<PrinterModel>,
 
-    #[arg(long)]
+    #[arg(
+        long,
+        help = "Automatically discover and connect to first available USB printer"
+    )]
     usb_auto_discover: bool,
 
-    #[arg(short, long, value_name = "FILE")]
+    #[arg(
+        short,
+        long,
+        value_name = "DEVICE",
+        help = "Connect via kernel device driver (e.g., /dev/usb/lp0)"
+    )]
     fd: Option<PathBuf>,
 }
 
 #[derive(Args, Debug)]
+#[command(next_help_heading = "Image Selection")]
 #[group(required = true, multiple = false)]
 struct ImageSelection {
-    #[arg(short, long, value_name = "FILE")]
-    image: Option<PathBuf>,
+    #[arg(
+        short,
+        long,
+        value_name = "FILE(s)",
+        num_args = 1..,
+        help = "Path(s) to image file (PNG, JPEG, etc.)"
+    )]
+    images: Option<Vec<PathBuf>>,
 
-    #[arg(long)]
+    #[arg(long, help = "Use a test label showing media dimensions")]
     use_test_image: bool,
 }
 
 #[derive(Debug, Subcommand)]
 enum Commands {
+    /// Print a label to the printer
     Print {
         #[command(flatten)]
         printer: PrinterSelection,
 
-        #[arg(short, long, value_enum)]
+        #[command(flatten)]
+        images: ImageSelection,
+
+        #[arg(
+            short,
+            long,
+            value_enum,
+            help_heading = "Print Options",
+            help = "Label media type"
+        )]
         media: Media,
 
-        #[command(flatten)]
-        image: ImageSelection,
+        #[arg(
+            short,
+            long,
+            group = "options",
+            help_heading = "Print Options",
+            value_name = "COUNT",
+            help = "Number of copies to print",
+            default_value_t = 1
+        )]
+        copies: u8,
 
-        #[arg(short, long, group = "options", value_name = "NUMBER")]
-        copies: Option<u8>,
-
-        #[arg(short, long, group = "options")]
-        quality_priority: Option<bool>,
+        #[arg(
+            long,
+            group = "options",
+            help_heading = "Print Options",
+            help = "Prioritize speed over quality"
+        )]
+        speed_priority: bool,
     },
+    /// Read and display printer status information
     Status {
         #[command(flatten)]
         printer: PrinterSelection,
     },
 }
+
+// enum CutBehavior {
+//     None,
+//     CutEach,
+//     CutAtEnd,
+// }
 
 enum Connection {
     Usb(UsbConnection),
@@ -106,38 +159,45 @@ fn create_connection(printer: PrinterSelection) -> Result<Connection> {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    if cli.debug {
-        tracing_subscriber::fmt()
-            .map_fmt_fields(MakeExt::debug_alt)
-            .with_env_filter(EnvFilter::new("debug"))
-            .init();
-    }
+    tracing_subscriber::fmt()
+        .map_fmt_fields(MakeExt::debug_alt)
+        .with_env_filter(EnvFilter::new(
+            cli.debug.then_some("debug").unwrap_or("info"),
+        ))
+        .init();
     match cli.command {
         Commands::Print {
             printer,
             media,
-            image,
+            images,
             copies,
-            quality_priority,
+            speed_priority,
         } => {
-            // Get image
-            let (img, use_test_label) = (image.image, image.use_test_image);
-            let img = match (img, use_test_label) {
-                (Some(path), _) => image::open(path)?,
-                (_, true) => render_test_label(media)?,
+            // Get images
+            let pj = match (images.images, images.use_test_image) {
+                (Some(paths), _) => {
+                    let imgs: Result<Vec<DynamicImage>> = paths
+                        .into_iter()
+                        .map(|p| image::open(p).map_err(|e| anyhow!("{e}")))
+                        .collect();
+                    let mut it = imgs?.into_iter();
+                    PrintJobBuilder::new(media)
+                        .add_label(it.next().ok_or(anyhow!("Empty image file list!"))?)
+                        .add_labels(it)
+                }
+                (_, true) => PrintJobBuilder::new(media).add_label(render_test_label(media)?),
                 _ => unreachable!(),
             };
 
             // Create print job
-            let print_job = PrintJobBuilder::new(media)
-                .add_label(img)
-                .copies(copies.unwrap_or(1))
-                .quality_priority(quality_priority.unwrap_or(true))
+            let pj = pj
+                .copies(copies)
+                .quality_priority(!speed_priority)
                 .build()?;
 
             // Get printer connection and print
             let mut conn = create_connection(printer)?;
-            conn.print(print_job)?;
+            conn.print(pj)?;
         }
         Commands::Status { printer } => {
             // Get printer connection and status
