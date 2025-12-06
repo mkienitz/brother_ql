@@ -66,6 +66,7 @@
               pkgs.bacon
               pkgs.typst
               pkgs.typstyle
+              pkgs.nodejs
             ]
             ++ (lib.optionals pkgs.stdenv.isDarwin [
               pkgs.libiconv
