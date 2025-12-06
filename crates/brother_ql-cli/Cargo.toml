@@ -1,6 +1,7 @@
 [package]
 name = "brother_ql-cli"
 version = "0.1.0"
+exclude = ["release.toml"]
 edition.workspace = true
 license.workspace = true
 authors.workspace = true

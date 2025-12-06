@@ -1,7 +1,8 @@
 [package]
 name = "brother_ql"
 version = "2.0.1"
-description = "Generate Brother QL Raster Command data from images"
+description = "Compile and print images using Brother QL label printers"
+exclude = ["release.toml"]
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
