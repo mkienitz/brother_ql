@@ -87,13 +87,6 @@ impl PrintJobBuilder<NoImages> {
             _state: PhantomData,
         }
     }
-
-    /// Add multiple images at once
-    #[must_use]
-    pub fn add_labels<I: IntoIterator<Item = DynamicImage>>(mut self, imgs: I) -> Self {
-        self.images.extend(imgs);
-        self
-    }
 }
 
 impl PrintJobBuilder<HasImages> {
