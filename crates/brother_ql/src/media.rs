@@ -115,7 +115,7 @@ macro_rules! define_media {
 
         impl Media {
             /// Returns the label type (`Continuous` or `DieCut`)
-            pub(crate) const fn label_type(self) -> LabelType {
+            pub const fn label_type(self) -> LabelType {
                 match self { $( Media::$name => LabelType::$label_type ),+ }
             }
             /// Returns the media width in millimeters
