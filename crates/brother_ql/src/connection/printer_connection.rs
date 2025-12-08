@@ -224,7 +224,8 @@ pub trait PrinterConnection: ConnectionImpl {
     /// # }
     /// ```
     fn print(&mut self, job: PrintJob) -> Result<(), PrintError<Self::Error>> {
-        info!(?job, "Starting print job...");
+        info!("Starting print job...");
+        debug!("{job:#?}");
         let no_pages = job.page_count();
         let expected_media = job.media;
         let parts = job.into_parts();
