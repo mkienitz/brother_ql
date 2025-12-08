@@ -1,1 +1,2 @@
 allow-branch = ["main"]
+tag-message = "chore: release {{crate_name}} version {{version}}"

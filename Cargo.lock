@@ -277,6 +277,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "brother-label"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "brother_ql",
+ "clap",
+ "image",
+ "strum",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "brother_ql"
 version = "2.1.0"
 dependencies = [
@@ -295,18 +307,6 @@ dependencies = [
  "typst",
  "typst-kit",
  "typst-render",
-]
-
-[[package]]
-name = "brother_ql-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "brother_ql",
- "clap",
- "image",
- "strum",
- "tracing-subscriber",
 ]
 
 [[package]]

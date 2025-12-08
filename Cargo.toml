@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/brother_ql", "crates/brother_ql-cli"]
+members = ["crates/brother_ql", "crates/brother-label"]
 resolver = "3"
 
 [workspace.package]

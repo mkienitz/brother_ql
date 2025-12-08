@@ -143,9 +143,9 @@ enum Commands {
     },
 }
 
-#[derive(Clone, Debug, ValueEnum)]
+#[derive(Copy, Clone, Debug, ValueEnum)]
 enum CutBehavior {
-    None,
+    NoCut,
     CutEach,
     CutAtEnd,
 }
@@ -155,7 +155,7 @@ impl CutBehavior {
     fn to_unwrapped(self) -> brother_ql::printjob::CutBehavior {
         use brother_ql::printjob::CutBehavior as CB;
         match self {
-            CutBehavior::None => CB::None,
+            CutBehavior::NoCut => CB::None,
             CutBehavior::CutEach => CB::CutEach,
             CutBehavior::CutAtEnd => CB::CutAtEnd,
         }
@@ -170,10 +170,11 @@ enum Connection {
 // Connection helpers
 impl Connection {
     fn print(&mut self, job: brother_ql::printjob::PrintJob) -> Result<()> {
-        Ok(match self {
+        match self {
             Connection::Usb(conn) => conn.print(job)?,
             Connection::Kernel(conn) => conn.print(job)?,
-        })
+        };
+        Ok(())
     }
 
     fn get_status(&mut self) -> Result<brother_ql::status::StatusInformation> {
@@ -203,9 +204,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     tracing_subscriber::fmt()
         .map_fmt_fields(MakeExt::debug_alt)
-        .with_env_filter(EnvFilter::new(
-            cli.debug.then_some("debug").unwrap_or("info"),
-        ))
+        .with_env_filter(EnvFilter::new(if cli.debug { "debug" } else { "info" }))
         .init();
     match cli.command {
         Commands::Print {
@@ -213,6 +212,10 @@ fn main() -> Result<()> {
             images,
             print_options,
         } => {
+            // TODO: remove warning once brother_ql implements compression
+            if let Some(true) = print_options.compress {
+                println!("Warning: --compress currently has no effect")
+            }
             // Get images
             let mut pj_builder = match (images.images, images.use_test_image) {
                 (Some(paths), _) => {

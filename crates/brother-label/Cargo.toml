@@ -1,5 +1,6 @@
 [package]
-name = "brother_ql-cli"
+name = "brother-label"
+description = "CLI to print images using Brother QL series printers based on the brother_ql crate"
 version = "0.1.0"
 exclude = ["release.toml"]
 edition.workspace = true
