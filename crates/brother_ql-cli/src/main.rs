@@ -8,8 +8,7 @@ use brother_ql::{
     printjob::PrintJobBuilder,
     test_labels::render_test_label,
 };
-use clap::{Args, Parser, Subcommand};
-use image::DynamicImage;
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use tracing_subscriber::{EnvFilter, field::MakeExt};
 
 #[derive(Parser, Debug)]
@@ -70,6 +69,60 @@ struct ImageSelection {
     use_test_image: bool,
 }
 
+#[derive(Args, Debug)]
+#[command(next_help_heading = "Print options")]
+struct PrintOptions {
+    #[arg(short, long, value_enum, help = "Label media type")]
+    media: Media,
+
+    #[arg(
+        short,
+        long,
+        group = "options",
+        value_name = "COUNT",
+        help = "Number of copies to print",
+        default_value_t = 1
+    )]
+    copies: u8,
+
+    #[arg(
+            long,
+            group = "options",
+            help = "Prioritize quality over speed",
+            default_value = "true",
+            default_missing_value = "true",
+            num_args = 0..=1,
+            require_equals = true
+        )]
+    quality_priority: Option<bool>,
+
+    #[arg(long, value_enum, help = "Cut behavior")]
+    cut_behavior: Option<CutBehavior>,
+
+    #[arg(
+            long,
+            group = "options",
+            help = "Use double the resolution along the feeding direction.\nNOTE: this requires supplying an adjusted image.",
+            conflicts_with = "use_test_image",
+            default_value = "false",
+            default_missing_value = "false",
+            num_args = 0..=1,
+            require_equals = true
+        )]
+    high_dpi: Option<bool>,
+
+    #[arg(
+            long,
+            group = "options",
+            help = "Use print data compression (currently has no effect)",
+            default_value = "false",
+            default_missing_value = "false",
+            num_args = 0..=1,
+            require_equals = true
+        )]
+    compress: Option<bool>,
+}
+
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Print a label to the printer
@@ -80,33 +133,8 @@ enum Commands {
         #[command(flatten)]
         images: ImageSelection,
 
-        #[arg(
-            short,
-            long,
-            value_enum,
-            help_heading = "Print Options",
-            help = "Label media type"
-        )]
-        media: Media,
-
-        #[arg(
-            short,
-            long,
-            group = "options",
-            help_heading = "Print Options",
-            value_name = "COUNT",
-            help = "Number of copies to print",
-            default_value_t = 1
-        )]
-        copies: u8,
-
-        #[arg(
-            long,
-            group = "options",
-            help_heading = "Print Options",
-            help = "Prioritize speed over quality"
-        )]
-        speed_priority: bool,
+        #[command(flatten)]
+        print_options: PrintOptions,
     },
     /// Read and display printer status information
     Status {
@@ -115,30 +143,44 @@ enum Commands {
     },
 }
 
-// enum CutBehavior {
-//     None,
-//     CutEach,
-//     CutAtEnd,
-// }
+#[derive(Clone, Debug, ValueEnum)]
+enum CutBehavior {
+    None,
+    CutEach,
+    CutAtEnd,
+}
+
+// Helper because the library crate type is not primitive
+impl CutBehavior {
+    fn to_unwrapped(self) -> brother_ql::printjob::CutBehavior {
+        use brother_ql::printjob::CutBehavior as CB;
+        match self {
+            CutBehavior::None => CB::None,
+            CutBehavior::CutEach => CB::CutEach,
+            CutBehavior::CutAtEnd => CB::CutAtEnd,
+        }
+    }
+}
 
 enum Connection {
     Usb(UsbConnection),
     Kernel(KernelConnection),
 }
 
+// Connection helpers
 impl Connection {
     fn print(&mut self, job: brother_ql::printjob::PrintJob) -> Result<()> {
-        match self {
-            Connection::Usb(conn) => conn.print(job).map_err(Into::into),
-            Connection::Kernel(conn) => conn.print(job).map_err(Into::into),
-        }
+        Ok(match self {
+            Connection::Usb(conn) => conn.print(job)?,
+            Connection::Kernel(conn) => conn.print(job)?,
+        })
     }
 
     fn get_status(&mut self) -> Result<brother_ql::status::StatusInformation> {
-        match self {
-            Connection::Usb(conn) => conn.get_status().map_err(Into::into),
-            Connection::Kernel(conn) => conn.get_status().map_err(Into::into),
-        }
+        Ok(match self {
+            Connection::Usb(conn) => conn.get_status()?,
+            Connection::Kernel(conn) => conn.get_status()?,
+        })
     }
 }
 
@@ -168,32 +210,55 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Print {
             printer,
-            media,
             images,
-            copies,
-            speed_priority,
+            print_options,
         } => {
             // Get images
-            let pj = match (images.images, images.use_test_image) {
+            let mut pj_builder = match (images.images, images.use_test_image) {
                 (Some(paths), _) => {
-                    let imgs: Result<Vec<DynamicImage>> = paths
+                    let imgs = paths
                         .into_iter()
                         .map(|p| image::open(p).map_err(|e| anyhow!("{e}")))
-                        .collect();
-                    let mut it = imgs?.into_iter();
-                    PrintJobBuilder::new(media)
-                        .add_label(it.next().ok_or(anyhow!("Empty image file list!"))?)
+                        .collect::<Result<Vec<_>>>()?;
+                    let mut it = imgs.into_iter();
+                    PrintJobBuilder::new(print_options.media)
+                        .add_label(
+                            it.next()
+                                .expect("Empty image file list! This should be guarded by clap!"),
+                        )
                         .add_labels(it)
                 }
-                (_, true) => PrintJobBuilder::new(media).add_label(render_test_label(media)?),
+                (_, true) => PrintJobBuilder::new(print_options.media)
+                    .add_label(render_test_label(print_options.media)?),
                 _ => unreachable!(),
             };
 
             // Create print job
-            let pj = pj
-                .copies(copies)
-                .quality_priority(!speed_priority)
-                .build()?;
+            pj_builder = pj_builder
+                .copies(print_options.copies)
+                .high_dpi(
+                    print_options
+                        .high_dpi
+                        .expect("No high-dpi option set! This should be guarded by clap!"),
+                )
+                .compressed(
+                    print_options
+                        .compress
+                        .expect("No compression option set! This should be guarded by clap!"),
+                )
+                .quality_priority(
+                    print_options
+                        .quality_priority
+                        .expect("No quality priority set! This should be guarded by clap!"),
+                );
+
+            // For cutting behavior, let the builder pick the media-type dependent defaults.
+            // Therefore, don't set defaults using unwrap_or at this level.
+            if let Some(cb) = print_options.cut_behavior {
+                pj_builder = pj_builder.cut_behavior(cb.to_unwrapped());
+            }
+
+            let pj = pj_builder.build()?;
 
             // Get printer connection and print
             let mut conn = create_connection(printer)?;
