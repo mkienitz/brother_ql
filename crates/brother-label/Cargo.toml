@@ -8,10 +8,6 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
-[[bin]]
-name = "brother-ql"
-path = "src/main.rs"
-
 [dependencies]
 anyhow = "1.0.100"
 brother_ql = { version = "2.1.1", path = "../brother_ql", features = [
