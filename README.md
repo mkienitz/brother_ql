@@ -1,17 +1,45 @@
-# brother_ql
+# Brother QL Rust Tools
 
-This is a crate to convert image data to the Raster Command binary data understood by
-Brother QL series label printers.
+Rust tools for Brother QL series label printers. This project provides both a [Rust library crate](https://crates.io/crates/brother_ql) for programmatic label printing and a [command-line tool](https://crates.io/crates/brother-label) for easy printing from the terminal.
 
-## Features
+## 📦 Components
 
-- **📦 Compile to binary data** - Convert images to raster command bytes that can be sent to the printer via USB, network, or saved to files
-- **🔌 Direct USB printing** - Print labels directly via USB connection with full status monitoring (also supported via a kernel connection)
-- **📊 Status information** - Read detailed printer status including errors, media type, and operational phase
-- **🎨 Two-color printing** - Support for red and black printing on compatible printer models
-- **🏷️ Multiple media types** - Support for continuous and die-cut labels in various widths
+### 📚 `brother_ql` - Rust Library
 
-## Supported Printers
+A Rust library to convert images to Brother QL raster command data and print labels directly via USB or kernel connections.
+
+**Features:** Image to raster conversion, USB printing with status monitoring, two-color printing support, 28+ media types
+
+**Links:**
+- [README →](crates/brother_ql/README.md)
+- [API Docs (docs.rs) →](https://docs.rs/brother_ql)
+- [crates.io →](https://crates.io/crates/brother_ql)
+
+**Quick example:**
+```rust
+use brother_ql::{connection::*, media::Media, printjob::PrintJob};
+
+let mut conn = UsbConnection::open(UsbConnectionInfo::discover()?.unwrap())?;
+let job = PrintJob::from_image(image::open("label.png")?, Media::C62)?;
+conn.print(job)?;
+```
+
+### 🔧 `brother-label` - CLI Tool
+
+A command-line application for printing labels to Brother QL printers. It's a minimal wrapper around the `brother_ql` library.
+
+**Features:** Exposes almost all capabilities of the library crate
+
+**Links:**
+- [README →](crates/brother-label/README.md)
+- [crates.io →](https://crates.io/crates/brother-label)
+
+**Quick example:**
+```bash
+brother-label print label1.png label2.png --media d24 --usb-auto-discover --copies 4 --cut-behavior=no-cut
+```
+
+## 🖨️ Supported Printers
 
 The following Brother QL label printers are supported:
 - **5xx series**: QL-560, QL-570, QL-580N
@@ -28,92 +56,18 @@ The following Brother QL label printers are supported:
 - Report any problems you encounter
 - Contribute improvements to support additional models
 
-
-**Note:** This crate is still work-in-progress and some bugs might still exist.
-
 For more details, check the [official Raster Command Reference](https://download.brother.com/welcome/docp100278/cv_ql800_eng_raster_101.pdf) (this one is for the 8xx series).
 
-## Installation
+## 🚀 Getting Started
 
-```bash
-cargo add brother_ql
+**Want to print labels from the command line?**
+→ See the [brother-label CLI documentation](crates/brother-label/README.md)
 
-# Or with optional features:
-cargo add brother_ql --features usb
-```
+**Want to integrate printing into your Rust application?**
+→ See the [brother_ql library documentation](crates/brother_ql/README.md)
 
-**Feature flags:**
-- `usb` - Enable USB printing support (requires `libusb`)
-- `serde` - Enable serialization support
+## 💬 Contributing & Issues
 
-## Examples
+This project is still new and hasn't been tested across all printer models and scenarios. If you encounter any problems, unexpected behavior, have successful test results to report, or have suggestions for improvements, please [report an issue on GitHub](https://github.com/mkienitz/brother_ql/issues/new/choose).
 
-### Printing via USB connection
-
-**Note:** Requires the `usb` feature.
-
-```rust
-use brother_ql::{
-    connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
-    media::Media, printer::PrinterModel, printjob::PrintJob,
-};
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create connection info for QL-820NWB
-    let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
-    // Open USB connection
-    let mut connection = UsbConnection::open(info)?;
-    // Read status from printer
-    let _status = connection.get_status()?;
-    // Create a print job with more than one page
-    let img = image::open("c62.png")?;
-    let job = PrintJob::new(img, Media::C62)?.page_count(2);
-    // These are the defaults for the other options:
-    // .high_dpi(false)
-    // .compressed(false)
-    // .quality_priority(true)
-    // .cut_behavior(CutBehavior::CutEach)?; // default for continuous media
-    // Finally, print
-    connection.print(job)?;
-    Ok(())
-}
-```
-
-### Printing via kernel connection
-
-**Note:** Works without any optional features. On Linux, you can use the kernel's USB printer driver (`/dev/usb/lp0`).
-
-```rust
-use brother_ql::{
-    connection::{KernelConnection, PrinterConnection},
-    media::Media, printjob::PrintJob,
-};
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Open kernel device connection
-    let mut connection = KernelConnection::open("/dev/usb/lp0")?;
-    // Create and print a job
-    let img = image::open("c62.png")?;
-    let job = PrintJob::new(img, Media::C62)?;
-    connection.print(job)?;
-    Ok(())
-}
-```
-
-### Compiling and saving a print job
-
-**Note:** Works without any optional features.
-
-```rust
-use std::{fs::File, io::Write};
-use brother_ql::{media::Media, printjob::PrintJob};
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let img = image::open("c62.png")?;
-    let job = PrintJob::new(img, Media::C62)?;
-    let data = job.compile();
-    let mut file = File::create("c62mm.bin")?;
-    file.write_all(&data)?;
-    Ok(())
-}
-```
+Your feedback helps make these tools better for everyone!
