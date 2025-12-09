@@ -75,8 +75,11 @@
               {
                 # On darwin for example enables finding of libiconv
                 name = "LIBRARY_PATH";
-                # append in case it needs to be modified
                 eval = "$DEVSHELL_DIR/lib";
+              }
+              {
+                name = "PATH";
+                prefix = "$HOME/.cargo/bin";
               }
             ];
             devshell.startup.pre-commit.text = config.pre-commit.installationScript;
@@ -102,7 +105,9 @@
             };
           };
 
-          packages.default = config.nci.outputs.brother_ql.packages.release;
+          packages.default = config.perSystem.packages.lib;
+          packages.lib = config.nci.outputs.brother_ql.packages.release;
+          packages.cli = config.nci.outputs.brother-label.packages.release;
         };
     };
 }
