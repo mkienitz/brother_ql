@@ -3,6 +3,8 @@
 This is a crate to convert image data to the Raster Command binary data understood by
 Brother QL series label printers.
 
+**Looking for a CLI tool?** Check out [brother-label](https://crates.io/crates/brother-label), a command-line application built on this library.
+
 ## Features
 
 - **📦 Compile to binary data** - Convert images to raster command bytes that can be sent to the printer via USB, network, or saved to files
@@ -13,21 +15,7 @@ Brother QL series label printers.
 
 ## Supported Printers
 
-The following Brother QL label printers are supported:
-- **5xx series**: QL-560, QL-570, QL-580N
-- **6xx series**: QL-600, QL-650TD
-- **7xx series**: QL-700 ✅, QL-710W, QL-720NW
-- **8xx series**: QL-800, QL-810W, QL-820NWB ✅
-
-**Legend:**
-- ✅ = Tested and confirmed working
-- No mark = Supported but not yet tested by contributors
-
-**Help us test!** If you have one of the untested printer models, please try it out and let us know how it works! Feel free to:
-- Open an issue to report successful testing
-- Report any problems you encounter
-- Contribute improvements to support additional models
-
+See the [list of supported printers](https://github.com/mkienitz/brother_ql?tab=readme-ov-file#supported-printers) in the main README.
 
 **Note:** This crate is still work-in-progress and some bugs might still exist.
 
