@@ -119,11 +119,11 @@ macro_rules! define_media {
                 match self { $( Media::$name => LabelType::$label_type ),+ }
             }
             /// Returns the media width in millimeters
-            pub(crate) const fn width_mm(self) -> u8 {
+            pub const fn width_mm(self) -> u8 {
                 match self { $( Media::$name => $width_mm ),+ }
             }
             /// Returns the media width in dots (at 300 DPI)
-            pub(crate) const fn width_dots(self) -> u32 {
+            pub const fn width_dots(self) -> u32 {
                 match self { $( Media::$name => $width_dots ),+ }
             }
             /// Returns the left margin in dots
@@ -131,15 +131,15 @@ macro_rules! define_media {
                 match self { $( Media::$name => $left_margin ),+ }
             }
             /// Returns whether this media supports red/black two-color printing
-            pub(crate) const fn supports_color(self) -> bool {
+            pub const fn supports_color(self) -> bool {
                 match self { $( Media::$name => $supports_color ),+ }
             }
             /// Returns the label length in millimeters (`None` for continuous media)
-            pub(crate) const fn length_mm(self) -> Option<u8> {
+            pub const fn length_mm(self) -> Option<u8> {
                 match self { $( Media::$name => define_media!(@opt $( $length_mm )? ) ),+ }
             }
             /// Returns the label length in dots (None for continuous media)
-            pub(crate) const fn length_dots(self) -> Option<u32> {
+            pub const fn length_dots(self) -> Option<u32> {
                 match self { $( Media::$name => define_media!(@opt $( $length_dots )? ) ),+ }
             }
         }
