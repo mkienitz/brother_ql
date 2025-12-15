@@ -10,7 +10,7 @@ repository.workspace = true
 
 [dependencies]
 anyhow = "1.0.100"
-brother_ql = { version = "2.1.1", path = "../brother_ql", features = [
+brother_ql = { version = "2.2.0", path = "../brother_ql", features = [
   "clap",
   "usb",
   "test-labels",
