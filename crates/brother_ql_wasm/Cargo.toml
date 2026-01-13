@@ -1,0 +1,36 @@
+[package]
+name = "brother_ql_wasm"
+version = "0.1.0"
+description = "WebAssembly bindings for Brother QL label printer command generation"
+edition = "2024"
+license = "MIT"
+authors = ["Maximilian Kienitz <contact@kienitz.dev>"]
+repository = "https://github.com/mkienitz/brother_ql"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "console",
+    "Blob",
+    "BlobPropertyBag",
+    "Url",
+    "Navigator",
+    "Window",
+] }
+wasm-bindgen-futures = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde-wasm-bindgen = "0.6"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+bitflags = "2.10.0"
+strum = { version = "0.27.2", features = ["derive"] }
+thiserror = "2.0"
+custom_debug = "0.6.2"
+console_error_panic_hook = "0.1"
+
+[features]
+default = []
