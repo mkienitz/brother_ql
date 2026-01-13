@@ -313,16 +313,14 @@ dependencies = [
 name = "brother_ql_wasm"
 version = "0.1.0"
 dependencies = [
- "bitflags 2.10.0",
+ "brother_ql",
  "console_error_panic_hook",
- "custom_debug",
  "image",
  "js-sys",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
  "strum",
- "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",

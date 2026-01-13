@@ -6,27 +6,12 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use js_sys::{Array, Reflect, Uint8Array, Promise, Object};
 
+use brother_ql::printer::PrinterModel;
+use strum::IntoEnumIterator;
 use crate::error::UsbError;
 
 /// Brother USB Vendor ID
 const BROTHER_VENDOR_ID: u16 = 0x04f9;
-
-/// Known Brother QL printer product IDs
-const PRODUCT_IDS: &[(u16, &str)] = &[
-    (0x2015, "QL-500"),
-    (0x2016, "QL-550"),
-    (0x2027, "QL-560"),
-    (0x2028, "QL-570"),
-    (0x2029, "QL-580N"),
-    (0x201b, "QL-650TD"),
-    (0x2042, "QL-700"),
-    (0x2043, "QL-710W"),
-    (0x2044, "QL-720NW"),
-    (0x209b, "QL-800"),
-    (0x209c, "QL-810W"),
-    (0x209d, "QL-820NWB"),
-    (0x20af, "QL-600"),
-];
 
 // Bindings for WebUSB API
 #[wasm_bindgen]
@@ -260,10 +245,8 @@ impl BrotherQlPrinter {
     #[wasm_bindgen(getter, js_name = modelName)]
     pub fn model_name(&self) -> String {
         let pid = self.device.product_id();
-        PRODUCT_IDS
-            .iter()
-            .find(|(id, _)| *id == pid)
-            .map(|(_, name)| name.to_string())
+        PrinterModel::from_product_id(pid)
+            .map(|m| format!("{:?}", m))
             .unwrap_or_else(|| format!("Unknown (0x{:04x})", pid))
     }
 
@@ -321,5 +304,5 @@ impl BrotherQlPrinter {
 /// Get list of supported printer models
 #[wasm_bindgen(js_name = getSupportedPrinters)]
 pub fn get_supported_printers() -> Vec<String> {
-    PRODUCT_IDS.iter().map(|(_, name)| name.to_string()).collect()
+    PrinterModel::iter().map(|m| format!("{:?}", m)).collect()
 }

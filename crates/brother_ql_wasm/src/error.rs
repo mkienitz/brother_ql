@@ -23,25 +23,17 @@ impl PrintJobError {
             message: message.into(),
         }
     }
-
-    pub fn dimension_mismatch(
-        expected_width: u32,
-        actual_width: u32,
-        expected_height: Option<u32>,
-        actual_height: u32,
-    ) -> Self {
-        let height_msg = expected_height
-            .map(|h| format!(", height: {h} px"))
-            .unwrap_or_default();
-        Self::new(format!(
-            "Image dimensions ({actual_width}x{actual_height} px) don't match media requirements (width: {expected_width} px{height_msg})"
-        ))
-    }
 }
 
 impl From<image::ImageError> for PrintJobError {
     fn from(e: image::ImageError) -> Self {
         Self::new(format!("Image error: {e}"))
+    }
+}
+
+impl From<brother_ql::error::PrintJobCreationError> for PrintJobError {
+    fn from(e: brother_ql::error::PrintJobCreationError) -> Self {
+        Self::new(format!("{e}"))
     }
 }
 

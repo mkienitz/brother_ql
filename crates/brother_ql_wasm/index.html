@@ -185,6 +185,7 @@
         .drop-zone .icon {
             font-size: 3rem;
             margin-bottom: 1rem;
+            color: var(--text-muted);
         }
 
         .drop-zone p {
@@ -279,23 +280,23 @@
 </head>
 <body>
     <div class="container">
-        <h1>🏷️ Brother QL Label Printer</h1>
+        <h1>Brother QL Label Printer</h1>
         <p class="subtitle">Print labels directly from your browser using WebUSB</p>
 
         <div id="unsupported-warning" class="warning-box" style="display: none;">
-            <strong>⚠️ WebUSB Not Supported</strong><br>
+            <strong>WebUSB Not Supported</strong><br>
             Your browser doesn't support WebUSB. Please use Chrome, Edge, or Opera on desktop.
         </div>
 
         <!-- Printer Connection -->
         <div class="card">
-            <h2><span class="icon">🔌</span> Printer Connection</h2>
+            <h2>Printer Connection</h2>
             <div class="flex-row">
                 <button id="connect-btn" class="btn btn-primary">
-                    <span>🔍</span> Connect Printer
+                    Connect Printer
                 </button>
                 <span id="connection-status" class="status-indicator status-disconnected">
-                    ⚫ Disconnected
+                    Disconnected
                 </span>
             </div>
             <div id="printer-info" class="printer-info" style="display: none;">
@@ -316,43 +317,12 @@
 
         <!-- Print Settings -->
         <div class="card">
-            <h2><span class="icon">⚙️</span> Print Settings</h2>
+            <h2>Print Settings</h2>
             <div class="form-group">
                 <label for="media-select">Label Media</label>
                 <select id="media-select">
-                    <optgroup label="Continuous Rolls">
-                        <option value="C12">12mm Continuous (DK-22214)</option>
-                        <option value="C29">29mm Continuous (DK-22210/11)</option>
-                        <option value="C38">38mm Continuous (DK-22225)</option>
-                        <option value="C50">50mm Continuous (DK-22223)</option>
-                        <option value="C54">54mm Continuous (DK-N55224)</option>
-                        <option value="C62" selected>62mm Continuous (DK-22205/etc)</option>
-                        <option value="C62R">62mm Red/Black (DK-22251)</option>
-                    </optgroup>
-                    <optgroup label="Die-Cut Labels">
-                        <option value="D17x54">17x54mm (DK-11204)</option>
-                        <option value="D17x87">17x87mm File Folder (DK-11203)</option>
-                        <option value="D23x23">23x23mm Square (DK-11221)</option>
-                        <option value="D29x42">29x42mm (DK-11215)</option>
-                        <option value="D29x90">29x90mm Address (DK-11201)</option>
-                        <option value="D38x90">38x90mm Large Address (DK-11208)</option>
-                        <option value="D39x48">39x48mm (DK-11220)</option>
-                        <option value="D52x29">52x29mm (DK-11226)</option>
-                        <option value="D54x29">54x29mm Removable (DK-3235)</option>
-                        <option value="D60x86">60x86mm Name Badge (DK-11234)</option>
-                        <option value="D62x29">62x29mm Small Address (DK-11209)</option>
-                        <option value="D62x100">62x100mm Shipping (DK-11202)</option>
-                    </optgroup>
-                    <optgroup label="Round/Specialty">
-                        <option value="D12">12mm Round (DK-11219)</option>
-                        <option value="D24">24mm Round (DK-11218)</option>
-                        <option value="D58">58mm CD/DVD (DK-11207)</option>
-                    </optgroup>
+                    <option value="">Loading...</option>
                 </select>
-            </div>
-            <div id="media-info" class="printer-info-item">
-                <label>Required Image Size</label>
-                <span id="media-dimensions">696px wide (any height)</span>
             </div>
             <div class="form-group mt-1">
                 <label for="copies-input">Number of Copies</label>
@@ -370,9 +340,9 @@
 
         <!-- Image Upload -->
         <div class="card">
-            <h2><span class="icon">🖼️</span> Label Image</h2>
+            <h2>Label Image</h2>
             <div id="drop-zone" class="drop-zone">
-                <div class="icon">📁</div>
+                <div class="icon">+</div>
                 <p><strong>Drop image here</strong> or click to browse</p>
                 <p>Supports PNG and JPEG</p>
                 <input type="file" id="file-input" accept="image/png,image/jpeg">
@@ -389,13 +359,13 @@
         <!-- Print Button -->
         <div class="card">
             <button id="print-btn" class="btn btn-success btn-primary" disabled style="width: 100%; padding: 1rem;">
-                <span>🖨️</span> Print Label
+                Print Label
             </button>
         </div>
 
         <!-- Log Output -->
         <div class="card">
-            <h2><span class="icon">📋</span> Log</h2>
+            <h2>Log</h2>
             <div id="log-output" class="log-output">
                 <div class="log-entry info">Ready. Connect a printer to get started.</div>
             </div>
@@ -407,7 +377,6 @@
         import init, { 
             BrotherQlPrinter, 
             PrintJob, 
-            getMediaInfo,
             getAllMediaTypeNames,
             version 
         } from './pkg/brother_ql_wasm.js';
@@ -423,7 +392,6 @@
         const printerProduct = document.getElementById('printer-product');
         const printerSerial = document.getElementById('printer-serial');
         const mediaSelect = document.getElementById('media-select');
-        const mediaDimensions = document.getElementById('media-dimensions');
         const copiesInput = document.getElementById('copies-input');
         const cutBehavior = document.getElementById('cut-behavior');
         const dropZone = document.getElementById('drop-zone');
@@ -448,15 +416,14 @@
             printBtn.disabled = !printer || !imageData;
         }
 
-        function updateMediaInfo() {
-            const mediaValue = mediaSelect.value;
-            const info = getMediaInfo(mediaValue);
-            if (info) {
-                if (info.lengthDots) {
-                    mediaDimensions.textContent = `${info.widthDots}x${info.lengthDots}px (${info.widthMm}x${info.lengthMm}mm)`;
-                } else {
-                    mediaDimensions.textContent = `${info.widthDots}px wide, any height (${info.widthMm}mm)`;
-                }
+        function populateMediaOptions() {
+            mediaSelect.innerHTML = '';
+            for (const name of getAllMediaTypeNames()) {
+                const el = document.createElement('option');
+                el.value = name;
+                el.textContent = name;
+                if (name === 'C62') el.selected = true;
+                mediaSelect.appendChild(el);
             }
         }
 
@@ -466,7 +433,7 @@
                 printer = await BrotherQlPrinter.requestDevice();
                 
                 connectionStatus.className = 'status-indicator status-connected';
-                connectionStatus.innerHTML = '🟢 Connected';
+                connectionStatus.innerHTML = 'Connected';
                 printerInfo.style.display = 'grid';
                 
                 printerModel.textContent = printer.modelName;
@@ -515,7 +482,7 @@
 
             try {
                 printBtn.disabled = true;
-                printBtn.innerHTML = '<span>⏳</span> Printing...';
+                printBtn.textContent = 'Printing...';
 
                 const mediaValue = mediaSelect.value;
                 
@@ -538,7 +505,7 @@
                 log(`Print failed: ${err.message || err}`, 'error');
             } finally {
                 printBtn.disabled = false;
-                printBtn.innerHTML = '<span>🖨️</span> Print Label';
+                printBtn.textContent = 'Print Label';
                 updatePrintButton();
             }
         }
@@ -562,7 +529,7 @@
                 if (devices.length > 0) {
                     printer = devices[0];
                     connectionStatus.className = 'status-indicator status-connected';
-                    connectionStatus.innerHTML = '🟢 Connected';
+                    connectionStatus.innerHTML = 'Connected';
                     printerInfo.style.display = 'grid';
                     printerModel.textContent = printer.modelName;
                     printerProduct.textContent = printer.productName || 'N/A';
@@ -570,7 +537,7 @@
                     log(`Reconnected to ${printer.modelName}`, 'success');
                 }
 
-                updateMediaInfo();
+                populateMediaOptions();
                 updatePrintButton();
             } catch (err) {
                 log(`Initialization error: ${err}`, 'error');
@@ -579,7 +546,6 @@
 
         // Event listeners
         connectBtn.addEventListener('click', connectPrinter);
-        mediaSelect.addEventListener('change', updateMediaInfo);
         printBtn.addEventListener('click', printLabel);
 
         dropZone.addEventListener('click', () => fileInput.click());

@@ -51,7 +51,7 @@ use crate::error::StatusParsingError;
 macro_rules! printer_models {
     ($($name:ident ($pid:expr, $rcode:expr),)+) => {
         /// Brother QL printer models
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumIter)]
         #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
         pub enum PrinterModel {
             $(
@@ -61,15 +61,15 @@ macro_rules! printer_models {
         }
 
         impl PrinterModel {
-            #[cfg(feature = "usb")]
-            pub(crate) const fn product_id(self) -> u16 {
+            /// Get the USB product ID for this printer model
+            pub const fn product_id(self) -> u16 {
                 match self {
                     $(Self::$name => $pid,)+
                 }
             }
 
-            #[cfg(feature = "usb")]
-            pub(crate) const fn from_product_id(product_id: u16) -> Option<Self> {
+            /// Get the printer model from a USB product ID
+            pub const fn from_product_id(product_id: u16) -> Option<Self> {
                 match product_id {
                     $($pid => Some(Self::$name),)+
                     _ => None,
