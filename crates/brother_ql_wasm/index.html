@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brother QL Label Printer</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --error: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h2 .icon {
+            font-size: 1.5rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-disconnected {
+            background: #fee2e2;
+            color: var(--error);
+        }
+
+        .status-connected {
+            background: #dcfce7;
+            color: var(--success);
+        }
+
+        .printer-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .printer-info-item {
+            padding: 0.75rem;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .printer-info-item label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .printer-info-item span {
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group select,
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .drop-zone .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+        }
+
+        .drop-zone p {
+            color: var(--text-muted);
+        }
+
+        .drop-zone input {
+            display: none;
+        }
+
+        .preview-container {
+            margin-top: 1rem;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .preview-info {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .log-output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-output .log-entry {
+            margin-bottom: 0.25rem;
+        }
+
+        .log-output .log-entry.error {
+            color: #f87171;
+        }
+
+        .log-output .log-entry.success {
+            color: #4ade80;
+        }
+
+        .log-output .log-entry.info {
+            color: #60a5fa;
+        }
+
+        .warning-box {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .flex-grow {
+            flex-grow: 1;
+        }
+
+        .mt-1 { margin-top: 1rem; }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            .drop-zone {
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Brother QL Label Printer</h1>
+        <p class="subtitle">Print labels directly from your browser using WebUSB</p>
+
+        <div id="unsupported-warning" class="warning-box" style="display: none;">
+            <strong>WebUSB Not Supported</strong><br>
+            Your browser doesn't support WebUSB. Please use Chrome, Edge, or Opera on desktop.
+        </div>
+
+        <!-- Printer Connection -->
+        <div class="card">
+            <h2>Printer Connection</h2>
+            <div class="flex-row">
+                <button id="connect-btn" class="btn btn-primary">
+                    Connect Printer
+                </button>
+                <span id="connection-status" class="status-indicator status-disconnected">
+                    Disconnected
+                </span>
+            </div>
+            <div id="printer-info" class="printer-info" style="display: none;">
+                <div class="printer-info-item">
+                    <label>Model</label>
+                    <span id="printer-model">-</span>
+                </div>
+                <div class="printer-info-item">
+                    <label>Product Name</label>
+                    <span id="printer-product">-</span>
+                </div>
+                <div class="printer-info-item">
+                    <label>Serial Number</label>
+                    <span id="printer-serial">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Print Settings -->
+        <div class="card">
+            <h2>Print Settings</h2>
+            <div class="form-group">
+                <label for="media-select">Label Media</label>
+                <select id="media-select">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            <div class="form-group mt-1">
+                <label for="copies-input">Number of Copies</label>
+                <input type="number" id="copies-input" value="1" min="1" max="99">
+            </div>
+            <div class="form-group">
+                <label for="cut-behavior">Cut Behavior</label>
+                <select id="cut-behavior">
+                    <option value="CutEach">Cut after each label</option>
+                    <option value="CutAtEnd">Cut at end only</option>
+                    <option value="None">No cutting (manual)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Image Upload -->
+        <div class="card">
+            <h2>Label Image</h2>
+            <div id="drop-zone" class="drop-zone">
+                <div class="icon">+</div>
+                <p><strong>Drop image here</strong> or click to browse</p>
+                <p>Supports PNG and JPEG</p>
+                <input type="file" id="file-input" accept="image/png,image/jpeg">
+            </div>
+            <div id="preview-container" class="preview-container" style="display: none;">
+                <img id="preview-image" class="preview-image" alt="Label preview">
+                <div class="preview-info">
+                    <span id="image-dimensions">-</span>
+                    <span id="image-size">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Print Button -->
+        <div class="card">
+            <button id="print-btn" class="btn btn-success btn-primary" disabled style="width: 100%; padding: 1rem;">
+                Print Label
+            </button>
+        </div>
+
+        <!-- Log Output -->
+        <div class="card">
+            <h2>Log</h2>
+            <div id="log-output" class="log-output">
+                <div class="log-entry info">Ready. Connect a printer to get started.</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the WASM module
+        import init, { 
+            BrotherQlPrinter, 
+            PrintJob, 
+            getAllMediaTypeNames,
+            version 
+        } from './pkg/brother_ql_wasm.js';
+
+        let printer = null;
+        let imageData = null;
+
+        // DOM elements
+        const connectBtn = document.getElementById('connect-btn');
+        const connectionStatus = document.getElementById('connection-status');
+        const printerInfo = document.getElementById('printer-info');
+        const printerModel = document.getElementById('printer-model');
+        const printerProduct = document.getElementById('printer-product');
+        const printerSerial = document.getElementById('printer-serial');
+        const mediaSelect = document.getElementById('media-select');
+        const copiesInput = document.getElementById('copies-input');
+        const cutBehavior = document.getElementById('cut-behavior');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewContainer = document.getElementById('preview-container');
+        const previewImage = document.getElementById('preview-image');
+        const imageDimensions = document.getElementById('image-dimensions');
+        const imageSize = document.getElementById('image-size');
+        const printBtn = document.getElementById('print-btn');
+        const logOutput = document.getElementById('log-output');
+        const unsupportedWarning = document.getElementById('unsupported-warning');
+
+        function log(message, type = '') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function updatePrintButton() {
+            printBtn.disabled = !printer || !imageData;
+        }
+
+        function populateMediaOptions() {
+            mediaSelect.innerHTML = '';
+            for (const name of getAllMediaTypeNames()) {
+                const el = document.createElement('option');
+                el.value = name;
+                el.textContent = name;
+                if (name === 'C62') el.selected = true;
+                mediaSelect.appendChild(el);
+            }
+        }
+
+        async function connectPrinter() {
+            try {
+                log('Requesting printer access...', 'info');
+                printer = await BrotherQlPrinter.requestDevice();
+                
+                connectionStatus.className = 'status-indicator status-connected';
+                connectionStatus.innerHTML = 'Connected';
+                printerInfo.style.display = 'grid';
+                
+                printerModel.textContent = printer.modelName;
+                printerProduct.textContent = printer.productName || 'N/A';
+                printerSerial.textContent = printer.serialNumber || 'N/A';
+                
+                log(`Connected to ${printer.modelName}`, 'success');
+                updatePrintButton();
+            } catch (err) {
+                log(`Connection failed: ${err.message || err}`, 'error');
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.type.match(/image\/(png|jpeg)/)) {
+                log('Please select a PNG or JPEG image', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imageData = new Uint8Array(e.target.result);
+                
+                // Show preview
+                const blob = new Blob([imageData], { type: file.type });
+                const url = URL.createObjectURL(blob);
+                previewImage.src = url;
+                previewContainer.style.display = 'block';
+                
+                // Get image dimensions
+                const img = new Image();
+                img.onload = () => {
+                    imageDimensions.textContent = `${img.width}x${img.height}px`;
+                    imageSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+                    log(`Image loaded: ${img.width}x${img.height}px`, 'success');
+                };
+                img.src = url;
+                
+                updatePrintButton();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function printLabel() {
+            if (!printer || !imageData) return;
+
+            try {
+                printBtn.disabled = true;
+                printBtn.textContent = 'Printing...';
+
+                const mediaValue = mediaSelect.value;
+                
+                log(`Creating print job for ${mediaValue}...`, 'info');
+                const job = PrintJob.fromImageBytes(imageData, mediaValue);
+                
+                const copies = parseInt(copiesInput.value, 10);
+                if (copies > 1) {
+                    job.setCopies(copies);
+                }
+
+                const cut = cutBehavior.value;
+                job.setCutBehavior(cut);
+
+                log(`Sending ${job.pageCount()} page(s) to printer...`, 'info');
+                await printer.print(job);
+                
+                log('Print job sent successfully!', 'success');
+            } catch (err) {
+                log(`Print failed: ${err.message || err}`, 'error');
+            } finally {
+                printBtn.disabled = false;
+                printBtn.textContent = 'Print Label';
+                updatePrintButton();
+            }
+        }
+
+        // Initialize
+        async function main() {
+            try {
+                await init();
+                log(`Brother QL WASM v${version()} loaded`, 'success');
+
+                // Check WebUSB support
+                if (!BrotherQlPrinter.isSupported()) {
+                    unsupportedWarning.style.display = 'block';
+                    connectBtn.disabled = true;
+                    log('WebUSB is not supported in this browser', 'error');
+                    return;
+                }
+
+                // Try to reconnect to previously paired devices
+                const devices = await BrotherQlPrinter.getDevices();
+                if (devices.length > 0) {
+                    printer = devices[0];
+                    connectionStatus.className = 'status-indicator status-connected';
+                    connectionStatus.innerHTML = 'Connected';
+                    printerInfo.style.display = 'grid';
+                    printerModel.textContent = printer.modelName;
+                    printerProduct.textContent = printer.productName || 'N/A';
+                    printerSerial.textContent = printer.serialNumber || 'N/A';
+                    log(`Reconnected to ${printer.modelName}`, 'success');
+                }
+
+                populateMediaOptions();
+                updatePrintButton();
+            } catch (err) {
+                log(`Initialization error: ${err}`, 'error');
+            }
+        }
+
+        // Event listeners
+        connectBtn.addEventListener('click', connectPrinter);
+        printBtn.addEventListener('click', printLabel);
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        main();
+    </script>
+</body>
+</html>

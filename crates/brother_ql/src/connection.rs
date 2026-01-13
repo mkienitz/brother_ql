@@ -6,7 +6,7 @@
 //! # Connection Types
 //!
 //! - [`UsbConnection`] - Direct USB communication (requires `usb` feature)
-//! - [`KernelConnection`] - Uses Linux kernel USB printer driver (no features required)
+//! - [`KernelConnection`] - Uses Linux kernel USB printer driver (requires `kernel` feature, enabled by default)
 //!
 //! All connection types implement the [`PrinterConnection`] trait, which provides
 //! high-level methods like [`print()`](PrinterConnection::print) and
@@ -28,6 +28,7 @@
 //!
 //! Network connection support is planned for future releases.
 
+#[cfg(feature = "kernel")]
 mod kernel_connection;
 mod printer_connection;
 #[cfg(feature = "usb")]
@@ -41,4 +42,5 @@ pub use printer_connection::PrinterConnection;
 pub use usb_connection::{UsbConnection, UsbConnectionInfo};
 
 // Re-export kernel types
+#[cfg(feature = "kernel")]
 pub use kernel_connection::KernelConnection;
