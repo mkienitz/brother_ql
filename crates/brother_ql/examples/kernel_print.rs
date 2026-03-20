@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let job = PrintJobBuilder::new(Media::C62)
         .add_label(img)
         // These are the defaults for the other options:
-        // .copies(1)
+        // .copies(NonZeroU8::MIN)
         // .high_dpi(false)
         // .compressed(false)
         // .quality_priority(true)

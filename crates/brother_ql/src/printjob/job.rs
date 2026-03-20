@@ -49,7 +49,7 @@ pub enum CutBehavior {
 #[derive(Clone, PartialEq, Debug)]
 pub struct PrintJob {
     /// Number of copies to print
-    pub(crate) no_copies: u8,
+    pub(crate) no_copies: NonZeroU8,
     /// Rasterized image data ready for printing
     pub(crate) raster_images: Vec<RasterImage>,
     /// Media type (e.g., C62, D24)
@@ -100,7 +100,7 @@ impl PrintJob {
             .collect::<Result<Vec<RasterImage>, _>>()?;
 
         Ok(Self {
-            no_copies: 1,
+            no_copies: NonZeroU8::MIN,
             raster_images,
             media,
             high_dpi: false,
@@ -114,13 +114,13 @@ impl PrintJob {
     }
 
     pub(crate) fn page_count(&self) -> usize {
-        self.no_copies as usize * self.raster_images.len()
+        self.no_copies.get() as usize * self.raster_images.len()
     }
 
     pub(crate) fn into_parts(self) -> PrintJobParts {
         let mut page_data = Vec::new();
 
-        for copy_no in 0..self.no_copies {
+        for copy_no in 0..self.no_copies.get() {
             for (img_idx, raster_image) in self.raster_images.iter().enumerate() {
                 use RasterCommand as RC;
                 let page_no = copy_no as usize * self.raster_images.len() + img_idx;
@@ -158,7 +158,7 @@ impl PrintJob {
                     two_color: self.media.supports_color(),
                     cut_at_end: match self.cut_behavior {
                         CutBehavior::CutAtEnd => true,
-                        CutBehavior::CutEvery(n) => !self.no_copies.is_multiple_of(n.get()),
+                        CutBehavior::CutEvery(n) => !self.no_copies.get().is_multiple_of(n.get()),
                         _ => false,
                     },
                     high_dpi: self.high_dpi,
@@ -269,7 +269,7 @@ mod tests {
     fn builder_preserves_all_settings() {
         let n3 = NonZeroU8::new(3).unwrap();
         let job = PrintJobBuilder::new(Media::C62)
-            .copies(5)
+            .copies(NonZeroU8::new(5).unwrap())
             .high_dpi(true)
             .compressed(true)
             .quality_priority(false)
@@ -278,7 +278,7 @@ mod tests {
             .build()
             .unwrap();
 
-        assert_eq!(job.no_copies, 5);
+        assert_eq!(job.no_copies.get(), 5);
         assert!(job.high_dpi);
         assert!(job.compressed);
         assert!(!job.quality_priority);
@@ -289,14 +289,14 @@ mod tests {
     fn builder_settings_after_add_label_preserved() {
         let job = PrintJobBuilder::new(Media::C62)
             .add_label(test_image(Media::C62))
-            .copies(3)
+            .copies(NonZeroU8::new(3).unwrap())
             .high_dpi(true)
             .quality_priority(false)
             .cut_behavior(CutBehavior::None)
             .build()
             .unwrap();
 
-        assert_eq!(job.no_copies, 3);
+        assert_eq!(job.no_copies.get(), 3);
         assert!(job.high_dpi);
         assert!(!job.quality_priority);
         assert_eq!(job.cut_behavior, CutBehavior::None);
@@ -321,7 +321,7 @@ mod tests {
     #[test]
     fn from_images_uses_defaults() {
         let job = PrintJob::from_image(test_image(Media::C62), Media::C62).unwrap();
-        assert_eq!(job.no_copies, 1);
+        assert_eq!(job.no_copies.get(), 1);
         assert!(!job.high_dpi);
         assert!(!job.compressed);
         assert!(job.quality_priority);
@@ -346,7 +346,7 @@ mod tests {
     #[test]
     fn page_count_with_copies() {
         let job = PrintJobBuilder::new(Media::C62)
-            .copies(3)
+            .copies(NonZeroU8::new(3).unwrap())
             .add_label(test_image(Media::C62))
             .add_label(test_image(Media::C62))
             .build()
@@ -368,7 +368,7 @@ mod tests {
     #[test]
     fn into_parts_page_count_matches() {
         let job = PrintJobBuilder::new(Media::C62)
-            .copies(2)
+            .copies(NonZeroU8::new(2).unwrap())
             .add_label(test_image(Media::C62))
             .add_label(test_image(Media::C62))
             .build()

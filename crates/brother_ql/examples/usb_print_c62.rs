@@ -1,6 +1,7 @@
 //! Print 62mm continuous labels via USB connection
 
 use std::error::Error;
+use std::num::NonZeroU8;
 
 use brother_ql::{
     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
@@ -25,7 +26,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Create a print job with more than one page
     let job = PrintJobBuilder::new(Media::C62)
         .add_label(img)
-        .copies(1)
+        .copies(NonZeroU8::new(2).unwrap())
         // These are the defaults for the other options:
         // .high_dpi(false)
         // .compressed(false)

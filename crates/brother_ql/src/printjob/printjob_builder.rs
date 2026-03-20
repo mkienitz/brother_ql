@@ -1,5 +1,6 @@
 //! The core module for defining and compiling print data
 use std::marker::PhantomData;
+use std::num::NonZeroU8;
 
 use image::DynamicImage;
 
@@ -42,7 +43,7 @@ pub struct NoImages {}
 pub struct PrintJobBuilder<State> {
     images: Vec<DynamicImage>,
     media: Media,
-    no_copies: u8,
+    no_copies: NonZeroU8,
     high_dpi: bool,
     compressed: bool,
     quality_priority: bool,
@@ -59,7 +60,7 @@ impl PrintJobBuilder<NoImages> {
         Self {
             images: Vec::new(),
             media,
-            no_copies: 1,
+            no_copies: NonZeroU8::MIN,
             high_dpi: false,
             compressed: false,
             quality_priority: true,
@@ -130,7 +131,7 @@ impl<State> PrintJobBuilder<State> {
     ///
     /// **Default**: 1
     #[must_use]
-    pub fn copies(mut self, no_copies: u8) -> Self {
+    pub fn copies(mut self, no_copies: NonZeroU8) -> Self {
         self.no_copies = no_copies;
         self
     }

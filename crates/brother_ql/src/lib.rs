@@ -112,7 +112,7 @@
 //! let job = PrintJobBuilder::new(Media::C62)
 //!     .add_label(img1)                    // Add first image
 //!     .add_label(img2)                    // Add second image
-//!     .copies(5)                          // Print 5 copies of each
+//!     .copies(NonZeroU8::new(5).unwrap())  // Print 5 copies of each
 //!     .high_dpi(false)                    // 300 DPI (default)
 //!     .quality_priority(true)             // Quality over speed (default)
 //!     .cut_behavior(CutBehavior::CutEvery(NonZeroU8::new(2).unwrap()))  // Cut every 2 labels
