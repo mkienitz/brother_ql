@@ -278,6 +278,32 @@ impl StatusInformation {
     }
 }
 
+impl std::fmt::Display for StatusInformation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Printer: {}", self.model)?;
+        match self.media_type {
+            Some(LabelType::Continuous) => {
+                writeln!(f, "Media: {}mm continuous", self.media_width)?;
+            }
+            Some(LabelType::DieCut) => {
+                writeln!(
+                    f,
+                    "Media: {}mm x {}mm die-cut",
+                    self.media_width, self.media_length
+                )?;
+            }
+            None => {
+                writeln!(f, "Media: unknown")?;
+            }
+        }
+        writeln!(f, "Phase: {:?}", self.phase)?;
+        write!(f, "Status: {:?}", self.status_type)?;
+        if self.has_errors() {
+            write!(f, "\nErrors: {:?}", self.errors)?;
+        }
+        Ok(())
+    }
+}
 impl TryFrom<&[u8]> for StatusInformation {
     type Error = StatusParsingError;
 
