@@ -304,6 +304,111 @@ impl std::fmt::Display for StatusInformation {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Build a minimal valid 32-byte status packet
+    fn valid_status_packet() -> [u8; 32] {
+        let mut buf = [0u8; 32];
+        buf[0] = 0x80; // Print head mark
+        buf[1] = 0x20; // Size
+        buf[2] = 0x42; // Reserved
+        buf[3] = 0x34; // Series code
+        buf[4] = 0x41; // Model: QL820NWB
+        buf[5] = 0x30; // Reserved
+        buf[6] = 0x04; // Reserved (printer replies with 0x04)
+        buf[7] = 0x00; // Reserved
+        buf[8] = 0x00; // Error info 1
+        buf[9] = 0x00; // Error info 2
+        buf[10] = 62; // Media width
+        buf[11] = 0x0a; // Media type: Continuous
+        buf[12] = 0x00; // Reserved
+        buf[13] = 0x00; // Reserved
+        buf[14] = 0x15; // Reserved (printer replies with 0x15)
+        buf[15] = 0x00; // Mode: auto_cut off
+        buf[16] = 0x00; // Reserved
+        buf[17] = 0x00; // Media length
+        buf[18] = 0x00; // Status type: StatusRequestReply
+        buf[19] = 0x00; // Phase: Receiving
+        buf[20] = 0x00;
+        buf[21] = 0x00;
+        buf[22] = 0x00; // Notification: Unavailable
+        buf[23] = 0x00; // Reserved
+        buf[24] = 0x00; // Reserved
+        buf
+    }
+
+    #[test]
+    fn parse_valid_status_packet() {
+        let packet = valid_status_packet();
+        let status = StatusInformation::try_from(&packet[..]).unwrap();
+        assert_eq!(status.model, PrinterModel::QL820NWB);
+        assert_eq!(status.media_width, 62);
+        assert_eq!(status.media_type, Some(LabelType::Continuous));
+        assert_eq!(status.status_type, StatusType::StatusRequestReply);
+        assert_eq!(status.phase, Phase::Receiving);
+        assert!(!status.has_errors());
+    }
+
+    #[test]
+    fn parse_status_with_errors() {
+        let mut packet = valid_status_packet();
+        packet[8] = 0x01; // NoMediaError
+        let status = StatusInformation::try_from(&packet[..]).unwrap();
+        assert!(status.has_errors());
+        assert!(status.errors.contains(ErrorFlags::NoMediaError));
+    }
+
+    #[test]
+    fn parse_status_wrong_size() {
+        let short = [0u8; 16];
+        assert!(StatusInformation::try_from(&short[..]).is_err());
+    }
+
+    #[test]
+    fn status_type_roundtrip() {
+        assert_eq!(
+            StatusType::try_from(0x00).unwrap(),
+            StatusType::StatusRequestReply
+        );
+        assert_eq!(
+            StatusType::try_from(0x01).unwrap(),
+            StatusType::PrintingCompleted
+        );
+        assert_eq!(
+            StatusType::try_from(0x02).unwrap(),
+            StatusType::ErrorOccurred
+        );
+        assert_eq!(StatusType::try_from(0x06).unwrap(), StatusType::PhaseChange);
+        assert!(StatusType::try_from(0x08).is_err());
+    }
+
+    #[test]
+    fn phase_roundtrip() {
+        assert_eq!(
+            Phase::try_from([0x00, 0x00, 0x00]).unwrap(),
+            Phase::Receiving
+        );
+        assert_eq!(
+            Phase::try_from([0x01, 0x00, 0x00]).unwrap(),
+            Phase::Printing
+        );
+        assert!(Phase::try_from([0x02, 0x00, 0x00]).is_err());
+    }
+
+    #[test]
+    fn display_impl() {
+        let packet = valid_status_packet();
+        let status = StatusInformation::try_from(&packet[..]).unwrap();
+        let display = format!("{status}");
+        assert!(display.contains("QL-820NWB"));
+        assert!(display.contains("62mm"));
+        assert!(display.contains("continuous"));
+    }
+}
+
 impl TryFrom<&[u8]> for StatusInformation {
     type Error = StatusParsingError;
 

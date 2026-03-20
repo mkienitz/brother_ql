@@ -146,6 +146,64 @@ macro_rules! define_media {
     };
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use strum::IntoEnumIterator;
+
+    #[test]
+    fn all_media_fit_within_print_head() {
+        for media in Media::iter() {
+            assert!(
+                media.left_margin() + media.width_dots() <= 720,
+                "{media:?}: left_margin({}) + width_dots({}) = {} > 720",
+                media.left_margin(),
+                media.width_dots(),
+                media.left_margin() + media.width_dots()
+            );
+        }
+    }
+
+    #[test]
+    fn continuous_media_has_no_length() {
+        for media in Media::iter() {
+            if media.label_type() == LabelType::Continuous {
+                assert!(
+                    media.length_mm().is_none(),
+                    "{media:?} is continuous but has length_mm"
+                );
+                assert!(
+                    media.length_dots().is_none(),
+                    "{media:?} is continuous but has length_dots"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn die_cut_media_has_length() {
+        for media in Media::iter() {
+            if media.label_type() == LabelType::DieCut {
+                assert!(
+                    media.length_mm().is_some(),
+                    "{media:?} is die-cut but has no length_mm"
+                );
+                assert!(
+                    media.length_dots().is_some(),
+                    "{media:?} is die-cut but has no length_dots"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn width_dots_nonzero() {
+        for media in Media::iter() {
+            assert!(media.width_dots() > 0, "{media:?} has zero width_dots");
+        }
+    }
+}
+
 define_media! {
     C12 {
         products: ["DK-22214 Tape"],

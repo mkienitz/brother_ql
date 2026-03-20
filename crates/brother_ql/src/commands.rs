@@ -245,3 +245,101 @@ impl RasterCommands {
         res
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invalidate_command() {
+        let bytes: Vec<u8> = RasterCommand::Invalidate.into();
+        assert_eq!(bytes.len(), 400);
+        assert!(bytes.iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn status_request_command() {
+        let bytes: Vec<u8> = RasterCommand::StatusInformationRequest.into();
+        assert_eq!(bytes, vec![0x1b, 0x69, 0x53]);
+    }
+
+    #[test]
+    fn initialize_command() {
+        let bytes: Vec<u8> = RasterCommand::Initialize.into();
+        assert_eq!(bytes, vec![0x1b, 0x40]);
+    }
+
+    #[test]
+    fn print_command() {
+        let bytes: Vec<u8> = RasterCommand::Print.into();
+        assert_eq!(bytes, vec![0x0c]);
+    }
+
+    #[test]
+    fn print_with_feed_command() {
+        let bytes: Vec<u8> = RasterCommand::PrintWithFeed.into();
+        assert_eq!(bytes, vec![0x1a]);
+    }
+
+    #[test]
+    fn compression_mode_off() {
+        let bytes: Vec<u8> = RasterCommand::SelectCompressionMode {
+            tiff_compression: false,
+        }
+        .into();
+        assert_eq!(bytes, vec![0x4d, 0x00]);
+    }
+
+    #[test]
+    fn compression_mode_on() {
+        let bytes: Vec<u8> = RasterCommand::SelectCompressionMode {
+            tiff_compression: true,
+        }
+        .into();
+        assert_eq!(bytes, vec![0x4d, 0x02]);
+    }
+
+    #[test]
+    fn specify_page_number() {
+        let bytes: Vec<u8> = RasterCommand::SpecifyPageNumber { cut_every: 5 }.into();
+        assert_eq!(bytes, vec![0x1b, 0x69, 0x41, 5]);
+    }
+
+    #[test]
+    fn raster_graphics_transfer() {
+        let data = vec![0xFF, 0x00, 0xAA];
+        let bytes: Vec<u8> = RasterCommand::RasterGraphicsTransfer { data }.into();
+        assert_eq!(bytes, vec![0x67, 0x00, 3, 0xFF, 0x00, 0xAA]);
+    }
+
+    #[test]
+    fn expanded_mode_flags() {
+        let bytes: Vec<u8> = RasterCommand::ExpandedMode {
+            two_color: true,
+            cut_at_end: true,
+            high_dpi: true,
+        }
+        .into();
+        // two_color = bit 0, cut_at_end = bit 3, high_dpi = bit 6
+        assert_eq!(bytes, vec![0x1b, 0x69, 0x4b, 0b0100_1001]);
+    }
+
+    #[test]
+    fn preamble_structure() {
+        let preamble = RasterCommands::create_preamble().build();
+        // 400 bytes invalidate + 2 bytes initialize = 402
+        assert_eq!(preamble.len(), 402);
+        assert!(preamble[..400].iter().all(|&b| b == 0));
+        assert_eq!(preamble[400], 0x1b);
+        assert_eq!(preamble[401], 0x40);
+    }
+
+    #[test]
+    fn raster_commands_accumulates() {
+        let mut cmds = RasterCommands::default();
+        cmds.add(RasterCommand::Print);
+        cmds.add(RasterCommand::PrintWithFeed);
+        let bytes = cmds.build();
+        assert_eq!(bytes, vec![0x0c, 0x1a]);
+    }
+}

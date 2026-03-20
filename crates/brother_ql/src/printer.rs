@@ -108,6 +108,28 @@ macro_rules! printer_models {
     };
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_inserts_dash() {
+        assert_eq!(PrinterModel::QL820NWB.to_string(), "QL-820NWB");
+        assert_eq!(PrinterModel::QL700.to_string(), "QL-700");
+        assert_eq!(PrinterModel::QL560.to_string(), "QL-560");
+    }
+
+    #[test]
+    fn roundtrip_from_status_byte() {
+        assert_eq!(
+            PrinterModel::try_from(0x41).unwrap(),
+            PrinterModel::QL820NWB
+        );
+        assert_eq!(PrinterModel::try_from(0x35).unwrap(), PrinterModel::QL700);
+        assert!(PrinterModel::try_from(0xFF).is_err());
+    }
+}
+
 printer_models! {
     // Define all printer constants here. Usage:
     // <enum variant name> (<USB Product ID>, <Raster Model Code>)
