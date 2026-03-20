@@ -7,6 +7,7 @@ use crate::{
     error::PrintJobCreationError,
     media::{LabelType, Media},
     printjob::{CutBehavior, PrintJob},
+    raster_image::RasterImage,
 };
 
 /// Type-level marker indicating the builder has images
@@ -80,10 +81,7 @@ impl PrintJobBuilder<NoImages> {
             high_dpi: self.high_dpi,
             compressed: self.compressed,
             quality_priority: self.quality_priority,
-            cut_behavior: match self.media.label_type() {
-                LabelType::Continuous => CutBehavior::CutEach,
-                LabelType::DieCut => CutBehavior::CutAtEnd,
-            },
+            cut_behavior: self.cut_behavior,
             _state: PhantomData,
         }
     }
@@ -109,7 +107,20 @@ impl PrintJobBuilder<HasImages> {
     /// # Errors
     /// Returns an error if any image dimensions don't match the media requirements.
     pub fn build(self) -> Result<PrintJob, PrintJobCreationError> {
-        PrintJob::from_images(self.images, self.media)
+        let raster_images = self
+            .images
+            .into_iter()
+            .map(|img| RasterImage::new(img, self.media))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(PrintJob {
+            no_copies: self.no_copies,
+            raster_images,
+            media: self.media,
+            high_dpi: self.high_dpi,
+            compressed: self.compressed,
+            quality_priority: self.quality_priority,
+            cut_behavior: self.cut_behavior,
+        })
     }
 }
 
