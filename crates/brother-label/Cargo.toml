@@ -10,14 +10,14 @@ repository.workspace = true
 
 [dependencies]
 anyhow = "1.0.100"
-brother_ql = { version = "2.2.0", path = "../brother_ql", features = [
+brother_ql = { version = "3.0.0", path = "../brother_ql", features = [
   "clap",
   "usb",
   "test-labels",
 ] }
 clap = { version = "4.5.53", features = ["derive"] }
 image = "0.25.9"
-strum = "0.27.2"
+strum = "0.28.0"
 tracing-subscriber = { version = "0.3.22", features = [
   "tracing",
   "env-filter",
