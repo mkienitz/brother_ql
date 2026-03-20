@@ -71,11 +71,19 @@ struct ImageSelection {
 }
 
 #[derive(Args, Debug)]
+#[group(required = true, multiple = false)]
+#[command(next_help_heading = "Media Selection")]
+struct MediaSelection {
+    #[arg(short, long, value_enum, help = "Label media type")]
+    media: Option<Media>,
+
+    #[arg(long, help = "Infer media type from printer status")]
+    infer_media: bool,
+}
+
+#[derive(Args, Debug)]
 #[command(next_help_heading = "Print options")]
 struct PrintOptions {
-    #[arg(short, long, value_enum, help = "Label media type")]
-    media: Media,
-
     #[arg(
         short,
         long,
@@ -137,6 +145,9 @@ enum Commands {
 
         #[command(flatten)]
         images: ImageSelection,
+
+        #[command(flatten)]
+        media_selection: MediaSelection,
 
         #[command(flatten)]
         print_options: PrintOptions,
@@ -215,12 +226,34 @@ fn main() -> Result<()> {
         Commands::Print {
             printer,
             images,
+            media_selection,
             print_options,
         } => {
             // TODO: remove warning once brother_ql implements compression
             if let Some(true) = print_options.compress {
                 println!("Warning: --compress currently has no effect")
             }
+
+            // Resolve media: either from --media or by inferring from printer status
+            let mut conn = create_connection(printer)?;
+            let media = if let Some(media) = media_selection.media {
+                media
+            } else {
+                let status = conn.get_status()?;
+                let label_type = status
+                    .media_type
+                    .ok_or_else(|| anyhow!("Printer did not report a media type"))?;
+                Media::from_status_info(label_type, status.media_width, status.media_length)
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Could not identify media from printer status \
+                             (type={label_type:?}, width={}mm, length={}mm)",
+                            status.media_width,
+                            status.media_length,
+                        )
+                    })?
+            };
+
             // Get images
             let mut pj_builder = match (images.images, images.use_test_image) {
                 (Some(paths), _) => {
@@ -229,15 +262,14 @@ fn main() -> Result<()> {
                         .map(|p| image::open(p).map_err(|e| anyhow!("{e}")))
                         .collect::<Result<Vec<_>>>()?;
                     let mut it = imgs.into_iter();
-                    PrintJobBuilder::new(print_options.media)
+                    PrintJobBuilder::new(media)
                         .add_label(
                             it.next()
                                 .expect("Empty image file list! This should be guarded by clap!"),
                         )
                         .add_labels(it)
                 }
-                (_, true) => PrintJobBuilder::new(print_options.media)
-                    .add_label(render_test_label(print_options.media)?),
+                (_, true) => PrintJobBuilder::new(media).add_label(render_test_label(media)?),
                 _ => unreachable!(),
             };
 
@@ -270,9 +302,6 @@ fn main() -> Result<()> {
             }
 
             let pj = pj_builder.build()?;
-
-            // Get printer connection and print
-            let mut conn = create_connection(printer)?;
             conn.print(pj)?;
         }
         Commands::Status { printer } => {
