@@ -63,6 +63,7 @@
               pkgs.cargo-watch
               pkgs.cargo-modules
               pkgs.cargo-release
+              pkgs.git-cliff
               pkgs.bacon
               pkgs.typst
               pkgs.typstyle
