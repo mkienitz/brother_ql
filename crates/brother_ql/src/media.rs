@@ -146,6 +146,20 @@ macro_rules! define_media {
     };
 }
 
+impl Media {
+    /// Infer the media variant from printer-reported status fields.
+    ///
+    /// Returns `None` if no known media matches the given parameters.
+    pub fn from_status_info(label_type: LabelType, width_mm: u8, length_mm: u8) -> Option<Media> {
+        use strum::IntoEnumIterator;
+        Media::iter().find(|m| {
+            m.label_type() == label_type
+                && m.width_mm() == width_mm
+                && m.length_mm().unwrap_or(0) == length_mm
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -194,6 +208,24 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn from_status_info_continuous() {
+        let media = Media::from_status_info(LabelType::Continuous, 62, 0);
+        assert_eq!(media, Some(Media::C62));
+    }
+
+    #[test]
+    fn from_status_info_die_cut() {
+        let media = Media::from_status_info(LabelType::DieCut, 24, 24);
+        assert_eq!(media, Some(Media::D24));
+    }
+
+    #[test]
+    fn from_status_info_no_match() {
+        let media = Media::from_status_info(LabelType::Continuous, 99, 0);
+        assert!(media.is_none());
     }
 
     #[test]
