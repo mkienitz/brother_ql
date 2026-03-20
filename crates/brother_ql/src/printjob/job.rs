@@ -246,22 +246,136 @@ impl PrintJob {
             .for_each(|p| bytes.append(&mut p.build()));
         bytes
     }
+}
 
-    // /// Check if a specific printer model can handle this print job
-    // ///
-    // /// Validates printer compatibility before printing:
-    // /// - The printer supports the specified media type
-    // /// - The printer supports required features (e.g., color printing)
-    // /// - Any other printer-specific requirements are met
-    // ///
-    // /// **Note**: This method is not yet implemented.
-    // ///
-    // /// # Errors
-    // /// Will return an error if the printer model is incompatible with the print job settings.
-    // pub fn check_printer_compatibility(
-    //     &self,
-    //     _model: crate::printer::PrinterModel,
-    // ) -> Result<(), PrintJobCreationError> {
-    //     todo!("Implement printer compatibility checks")
-    // }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::printjob::PrintJobBuilder;
+    use image::{DynamicImage, RgbImage};
+
+    /// Create a synthetic white image matching the given media dimensions
+    fn test_image(media: Media) -> DynamicImage {
+        let width = media.width_dots();
+        let height = media.length_dots().unwrap_or(100);
+        DynamicImage::ImageRgb8(RgbImage::from_pixel(
+            width,
+            height,
+            image::Rgb([255, 255, 255]),
+        ))
+    }
+
+    #[test]
+    fn builder_preserves_all_settings() {
+        let n3 = NonZeroU8::new(3).unwrap();
+        let job = PrintJobBuilder::new(Media::C62)
+            .copies(5)
+            .high_dpi(true)
+            .compressed(true)
+            .quality_priority(false)
+            .cut_behavior(CutBehavior::CutEvery(n3))
+            .add_label(test_image(Media::C62))
+            .build()
+            .unwrap();
+
+        assert_eq!(job.no_copies, 5);
+        assert!(job.high_dpi);
+        assert!(job.compressed);
+        assert!(!job.quality_priority);
+        assert_eq!(job.cut_behavior, CutBehavior::CutEvery(n3));
+    }
+
+    #[test]
+    fn builder_settings_after_add_label_preserved() {
+        let job = PrintJobBuilder::new(Media::C62)
+            .add_label(test_image(Media::C62))
+            .copies(3)
+            .high_dpi(true)
+            .quality_priority(false)
+            .cut_behavior(CutBehavior::None)
+            .build()
+            .unwrap();
+
+        assert_eq!(job.no_copies, 3);
+        assert!(job.high_dpi);
+        assert!(!job.quality_priority);
+        assert_eq!(job.cut_behavior, CutBehavior::None);
+    }
+
+    #[test]
+    fn add_label_does_not_reset_cut_behavior() {
+        let job = PrintJobBuilder::new(Media::C62)
+            .cut_behavior(CutBehavior::CutAtEnd)
+            .add_label(test_image(Media::C62))
+            .build()
+            .unwrap();
+
+        assert_eq!(job.cut_behavior, CutBehavior::CutAtEnd);
+    }
+
+    #[test]
+    fn cut_every_nonzero_cannot_be_zero() {
+        assert!(NonZeroU8::new(0).is_none());
+    }
+
+    #[test]
+    fn from_images_uses_defaults() {
+        let job = PrintJob::from_image(test_image(Media::C62), Media::C62).unwrap();
+        assert_eq!(job.no_copies, 1);
+        assert!(!job.high_dpi);
+        assert!(!job.compressed);
+        assert!(job.quality_priority);
+        assert_eq!(job.cut_behavior, CutBehavior::CutEach); // Continuous → CutEach
+    }
+
+    #[test]
+    fn die_cut_defaults_to_cut_at_end() {
+        let media = Media::D29x90;
+        let job = PrintJob::from_image(test_image(media), media).unwrap();
+        assert_eq!(job.cut_behavior, CutBehavior::CutAtEnd);
+    }
+
+    #[test]
+    fn dimension_mismatch_error() {
+        let wrong_image =
+            DynamicImage::ImageRgb8(RgbImage::from_pixel(100, 100, image::Rgb([255, 255, 255])));
+        let result = PrintJob::from_image(wrong_image, Media::C62);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn page_count_with_copies() {
+        let job = PrintJobBuilder::new(Media::C62)
+            .copies(3)
+            .add_label(test_image(Media::C62))
+            .add_label(test_image(Media::C62))
+            .build()
+            .unwrap();
+
+        assert_eq!(job.page_count(), 6); // 3 copies × 2 images
+    }
+
+    #[test]
+    fn compile_produces_nonempty_output() {
+        let job = PrintJob::from_image(test_image(Media::C62), Media::C62).unwrap();
+        let bytes = job.compile();
+        assert!(!bytes.is_empty());
+        // Should start with the invalidate command (400 zero bytes)
+        assert!(bytes.len() > 400);
+        assert!(bytes[..400].iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn into_parts_page_count_matches() {
+        let job = PrintJobBuilder::new(Media::C62)
+            .copies(2)
+            .add_label(test_image(Media::C62))
+            .add_label(test_image(Media::C62))
+            .build()
+            .unwrap();
+
+        let expected_pages = job.page_count();
+        let parts = job.into_parts();
+        assert_eq!(parts.page_data.len(), expected_pages);
+    }
 }
