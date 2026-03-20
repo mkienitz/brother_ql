@@ -164,7 +164,7 @@ impl CutBehavior {
     fn to_unwrapped(self) -> brother_ql::printjob::CutBehavior {
         use brother_ql::printjob::CutBehavior as CB;
         match self {
-            CutBehavior::NoCut => CB::None,
+            CutBehavior::NoCut => CB::NoCut,
             CutBehavior::CutEach => CB::CutEach,
             CutBehavior::CutAtEnd => CB::CutAtEnd,
         }
