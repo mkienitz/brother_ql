@@ -43,7 +43,7 @@ cargo add brother_ql --features usb
 ```rust
 use brother_ql::{
     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
-    media::Media, printer::PrinterModel, printjob::PrintJob,
+    media::Media, printer::PrinterModel, printjob::PrintJobBuilder,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -53,14 +53,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut connection = UsbConnection::open(info)?;
     // Read status from printer
     let _status = connection.get_status()?;
-    // Create a print job with more than one page
+    // Create a print job
     let img = image::open("c62.png")?;
-    let job = PrintJob::new(img, Media::C62)?.page_count(2);
-    // These are the defaults for the other options:
-    // .high_dpi(false)
-    // .compressed(false)
-    // .quality_priority(true)
-    // .cut_behavior(CutBehavior::CutEach)?; // default for continuous media
+    let job = PrintJobBuilder::new(Media::C62)
+        .add_label(img)
+        // These are the defaults for the other options:
+        // .high_dpi(false)
+        // .compressed(false)
+        // .quality_priority(true)
+        // .cut_behavior(CutBehavior::CutEach) // default for continuous media
+        .build()?;
     // Finally, print
     connection.print(job)?;
     Ok(())
@@ -74,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```rust
 use brother_ql::{
     connection::{KernelConnection, PrinterConnection},
-    media::Media, printjob::PrintJob,
+    media::Media, printjob::PrintJobBuilder,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -82,7 +84,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut connection = KernelConnection::open("/dev/usb/lp0")?;
     // Create and print a job
     let img = image::open("c62.png")?;
-    let job = PrintJob::new(img, Media::C62)?;
+    let job = PrintJobBuilder::new(Media::C62)
+        .add_label(img)
+        .build()?;
     connection.print(job)?;
     Ok(())
 }
@@ -94,11 +98,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use std::{fs::File, io::Write};
-use brother_ql::{media::Media, printjob::PrintJob};
+use brother_ql::{media::Media, printjob::PrintJobBuilder};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let img = image::open("c62.png")?;
-    let job = PrintJob::new(img, Media::C62)?;
+    let job = PrintJobBuilder::new(Media::C62)
+        .add_label(img)
+        .build()?;
     let data = job.compile();
     let mut file = File::create("c62mm.bin")?;
     file.write_all(&data)?;
