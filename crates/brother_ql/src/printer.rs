@@ -77,6 +77,22 @@ macro_rules! printer_models {
             }
         }
 
+        impl std::fmt::Display for PrinterModel {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    $(Self::$name => {
+                        let name = stringify!($name);
+                        // Insert a dash between "QL" and the model number
+                        if let Some(rest) = name.strip_prefix("QL") {
+                            write!(f, "QL-{rest}")
+                        } else {
+                            write!(f, "{name}")
+                        }
+                    },)+
+                }
+            }
+        }
+
         impl TryFrom<u8> for PrinterModel {
             type Error = StatusParsingError;
 
