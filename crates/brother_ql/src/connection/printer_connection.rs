@@ -110,8 +110,8 @@ pub(super) mod sealed {
         fn validate_status(
             status: &StatusInformation,
             job_media: Media,
-            expected_type: &StatusType,
-            expected_phase: &Phase,
+            expected_type: StatusType,
+            expected_phase: Phase,
         ) -> Result<(), ProtocolError> {
             // Validate that the printer has the correct media installed
             fn status_matches_media(status: &StatusInformation, media: Media) -> bool {
@@ -138,12 +138,12 @@ pub(super) mod sealed {
             }
 
             // Check if status type and phase match expectations
-            if &status.status_type != expected_type || &status.phase != expected_phase {
+            if status.status_type != expected_type || status.phase != expected_phase {
                 return Err(ProtocolError::UnexpectedStatus {
-                    expected_type: expected_type.clone(),
-                    expected_phase: expected_phase.clone(),
-                    actual_type: status.status_type.clone(),
-                    actual_phase: status.phase.clone(),
+                    expected_type,
+                    expected_phase,
+                    actual_type: status.status_type,
+                    actual_phase: status.phase,
                 });
             }
 
@@ -241,8 +241,8 @@ pub trait PrinterConnection: ConnectionImpl {
         Self::validate_status(
             &status,
             expected_media,
-            &StatusType::StatusRequestReply,
-            &Phase::Receiving,
+            StatusType::StatusRequestReply,
+            Phase::Receiving,
         )
         .map_err(|e| PrintError::with_page(e, 0))?;
 
@@ -257,24 +257,24 @@ pub trait PrinterConnection: ConnectionImpl {
                 Self::validate_status(
                     &status,
                     expected_media,
-                    &StatusType::PhaseChange,
-                    &Phase::Printing,
+                    StatusType::PhaseChange,
+                    Phase::Printing,
                 )?;
                 // Printer should signal print completion
                 let status = self.read_status_reply()?;
                 Self::validate_status(
                     &status,
                     expected_media,
-                    &StatusType::PrintingCompleted,
-                    &Phase::Printing,
+                    StatusType::PrintingCompleted,
+                    Phase::Printing,
                 )?;
                 // Printer should change phase to "Receiving" again
                 let status = self.read_status_reply()?;
                 Self::validate_status(
                     &status,
                     expected_media,
-                    &StatusType::PhaseChange,
-                    &Phase::Receiving,
+                    StatusType::PhaseChange,
+                    Phase::Receiving,
                 )?;
                 Ok(())
             })();
