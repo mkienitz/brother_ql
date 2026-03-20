@@ -91,7 +91,7 @@ pub struct ErrorFlags: u16 {
 ///
 /// Error conditions are indicated through the [`ErrorFlags`] field rather
 /// than through the status type.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusType {
     /// Reply to a status request
     StatusRequestReply,
@@ -139,7 +139,7 @@ impl TryFrom<u8> for StatusType {
 /// - **Printing**: Currently printing a page
 ///
 /// Phase transitions are reported via [`StatusType::PhaseChange`] status updates.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Phase {
     /// Receiving data from the host
     Receiving,
@@ -165,7 +165,7 @@ impl TryFrom<[u8; 3]> for Phase {
 ///
 /// Some printers may send notifications about cooling cycles.
 /// Most of the time, no notification is available.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Notification {
     /// No notification available
     Unavailable,
