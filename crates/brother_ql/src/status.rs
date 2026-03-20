@@ -98,7 +98,7 @@ pub enum StatusType {
     /// Printing has completed
     PrintingCompleted,
     /// An error has occurred
-    ErrorOccured,
+    ErrorOccurred,
     /// Printer was turned off
     TurnedOff,
     /// Notification message
@@ -114,7 +114,7 @@ impl TryFrom<u8> for StatusType {
         match value {
             0x00 => Ok(Self::StatusRequestReply),
             0x01 => Ok(Self::PrintingCompleted),
-            0x02 => Ok(Self::ErrorOccured),
+            0x02 => Ok(Self::ErrorOccurred),
             0x04 => Ok(Self::TurnedOff),
             0x05 => Ok(Self::Notification),
             0x06 => Ok(Self::PhaseChange),

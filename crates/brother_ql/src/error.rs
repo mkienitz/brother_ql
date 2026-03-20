@@ -64,7 +64,7 @@ pub enum UsbError {
     /// Failed to write all data to the USB device
     ///
     /// This should never occur, but if it does, please report it as a GitHub issue
-    #[error("Incomplete USB write occured! Please report this issue!")]
+    #[error("Incomplete USB write occurred! Please report this issue!")]
     IncompleteWrite,
 
     /// Wraps errors from the underlying rusb USB library, including:
@@ -87,7 +87,7 @@ pub enum KernelError {
     /// Failed to write all data to the kernel device
     ///
     /// This should never occur, but if it does, please report it as a GitHub issue
-    #[error("Incomplete write occured! Please report this issue!")]
+    #[error("Incomplete write occurred! Please report this issue!")]
     IncompleteWrite,
 
     /// Kernel operation timeout
