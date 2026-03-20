@@ -101,6 +101,14 @@ struct PrintOptions {
     cut_behavior: Option<CutBehavior>,
 
     #[arg(
+        long,
+        value_name = "N",
+        help = "Cut every N pages (alternative to --cut-behavior)",
+        conflicts_with = "cut_behavior"
+    )]
+    cut_every: Option<std::num::NonZeroU8>,
+
+    #[arg(
             long,
             group = "options",
             help = "Use double the resolution along the feeding direction.\nNOTE: this requires supplying an adjusted image.",
@@ -260,6 +268,9 @@ fn main() -> Result<()> {
             // Therefore, don't set defaults using unwrap_or at this level.
             if let Some(cb) = print_options.cut_behavior {
                 pj_builder = pj_builder.cut_behavior(cb.to_unwrapped());
+            } else if let Some(n) = print_options.cut_every {
+                pj_builder =
+                    pj_builder.cut_behavior(brother_ql::printjob::CutBehavior::CutEvery(n));
             }
 
             let pj = pj_builder.build()?;
