@@ -2,13 +2,10 @@
 
 use std::num::NonZeroU8;
 
-use image::DynamicImage;
-
 use crate::{
     commands::{
         ColorPower, DynamicCommandMode, RasterCommand, RasterCommands, VariousModeSettings,
     },
-    error::PrintJobCreationError,
     media::{LabelType, Media},
     raster_image::RasterImage,
 };
@@ -35,7 +32,7 @@ pub enum CutBehavior {
 /// Print job configuration
 ///
 /// Represents a complete print job with image data and printer settings.
-/// Created via the [`PrintJobBuilder`](crate::printjob::PrintJobBuilder), [`PrintJob::from_image`] or [`PrintJob::from_images`].
+/// Created via the [`PrintJobBuilder`](crate::printjob::PrintJobBuilder).
 ///
 /// # Defaults
 ///
@@ -73,46 +70,6 @@ pub(crate) struct PrintJobParts {
 }
 
 impl PrintJob {
-    /// Create a print job from a single image
-    ///
-    /// Uses default settings (see [`PrintJob`] for defaults).
-    ///
-    /// # Errors
-    /// Returns an error if the image dimensions don't match the media requirements.
-    pub fn from_image(image: DynamicImage, media: Media) -> Result<Self, PrintJobCreationError> {
-        Self::from_images(vec![image], media)
-    }
-
-    /// Create a print job from multiple images
-    ///
-    /// Each image will be printed as a separate label.
-    /// Uses default settings (see [`PrintJob`] for defaults).
-    ///
-    /// # Errors
-    /// Returns an error if any image dimensions don't match the media requirements.
-    pub fn from_images(
-        images: Vec<DynamicImage>,
-        media: Media,
-    ) -> Result<Self, PrintJobCreationError> {
-        let raster_images = images
-            .into_iter()
-            .map(|img| RasterImage::new(img, media))
-            .collect::<Result<Vec<RasterImage>, _>>()?;
-
-        Ok(Self {
-            no_copies: NonZeroU8::MIN,
-            raster_images,
-            media,
-            high_dpi: false,
-            compressed: false,
-            quality_priority: true,
-            cut_behavior: match media.label_type() {
-                LabelType::Continuous => CutBehavior::CutEach,
-                LabelType::DieCut => CutBehavior::CutAtEnd,
-            },
-        })
-    }
-
     pub(crate) fn page_count(&self) -> usize {
         self.no_copies.get() as usize * self.raster_images.len()
     }
@@ -221,13 +178,15 @@ impl PrintJob {
     ///
     /// # Example
     /// ```no_run
-    /// # use brother_ql::printjob::PrintJob;
+    /// # use brother_ql::printjob::PrintJobBuilder;
     /// # use brother_ql::media::Media;
     /// # use std::fs::File;
     /// # use std::io::Write;
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let image = image::open("label.png")?;
-    /// let job = PrintJob::from_image(image, Media::C62)?;
+    /// let job = PrintJobBuilder::new(Media::C62)
+    ///     .add_label(image)
+    ///     .build()?;
     /// let bytes = job.compile();
     /// # // Save to file
     /// # let mut file = File::create("output.bin")?;
@@ -319,8 +278,11 @@ mod tests {
     }
 
     #[test]
-    fn from_images_uses_defaults() {
-        let job = PrintJob::from_image(test_image(Media::C62), Media::C62).unwrap();
+    fn builder_uses_defaults() {
+        let job = PrintJobBuilder::new(Media::C62)
+            .add_label(test_image(Media::C62))
+            .build()
+            .unwrap();
         assert_eq!(job.no_copies.get(), 1);
         assert!(!job.high_dpi);
         assert!(!job.compressed);
@@ -331,7 +293,10 @@ mod tests {
     #[test]
     fn die_cut_defaults_to_cut_at_end() {
         let media = Media::D29x90;
-        let job = PrintJob::from_image(test_image(media), media).unwrap();
+        let job = PrintJobBuilder::new(media)
+            .add_label(test_image(media))
+            .build()
+            .unwrap();
         assert_eq!(job.cut_behavior, CutBehavior::CutAtEnd);
     }
 
@@ -339,7 +304,9 @@ mod tests {
     fn dimension_mismatch_error() {
         let wrong_image =
             DynamicImage::ImageRgb8(RgbImage::from_pixel(100, 100, image::Rgb([255, 255, 255])));
-        let result = PrintJob::from_image(wrong_image, Media::C62);
+        let result = PrintJobBuilder::new(Media::C62)
+            .add_label(wrong_image)
+            .build();
         assert!(result.is_err());
     }
 
@@ -357,7 +324,10 @@ mod tests {
 
     #[test]
     fn compile_produces_nonempty_output() {
-        let job = PrintJob::from_image(test_image(Media::C62), Media::C62).unwrap();
+        let job = PrintJobBuilder::new(Media::C62)
+            .add_label(test_image(Media::C62))
+            .build()
+            .unwrap();
         let bytes = job.compile();
         assert!(!bytes.is_empty());
         // Should start with the invalidate command (400 zero bytes)

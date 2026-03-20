@@ -2,7 +2,7 @@
 
 use std::{error::Error, fs::File, io::Write};
 
-use brother_ql::{media::Media, printjob::PrintJob};
+use brother_ql::{media::Media, printjob::PrintJobBuilder};
 use tracing_subscriber::{EnvFilter, field::MakeExt};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .init();
     // Make sure to use a compatible image (696px wide)
     let img = image::open("c62.png")?;
-    let job = PrintJob::from_image(img, Media::C62)?;
+    let job = PrintJobBuilder::new(Media::C62).add_label(img).build()?;
     let data = job.compile();
     let mut file = File::create("c62mm.bin")?;
     file.write_all(&data)?;

@@ -26,7 +26,7 @@
 //! Only [`Media::C62R`] currently supports two-color (black/red) printing.
 //! All other media types support black-only printing.
 //!
-//! See [`PrintJob::from_image`](crate::printjob::PrintJob::from_image) for details.
+//! See [`PrintJobBuilder`](crate::printjob::PrintJobBuilder) for details.
 
 use crate::error::StatusParsingError;
 

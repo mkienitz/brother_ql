@@ -168,7 +168,7 @@ pub(super) mod sealed {
 /// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
 /// #     media::Media,
 /// #     printer::PrinterModel,
-/// #     printjob::PrintJob,
+/// #     printjob::PrintJobBuilder,
 /// # };
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// // Open a connection (USB in this example)
@@ -177,7 +177,9 @@ pub(super) mod sealed {
 ///
 /// // Create a print job
 /// let image = image::open("label.png")?;
-/// let job = PrintJob::from_image(image, Media::C62)?;
+/// let job = PrintJobBuilder::new(Media::C62)
+///     .add_label(image)
+///     .build()?;
 ///
 /// // Print using the trait method
 /// connection.print(job)?;
@@ -210,14 +212,16 @@ pub trait PrinterConnection: ConnectionImpl {
     /// #     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
     /// #     media::Media,
     /// #     printer::PrinterModel,
-    /// #     printjob::PrintJob,
+    /// #     printjob::PrintJobBuilder,
     /// # };
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let info = UsbConnectionInfo::from_model(PrinterModel::QL820NWB);
     /// let mut connection = UsbConnection::open(info)?;
     ///
     /// let image = image::open("label.png")?;
-    /// let job = PrintJob::from_image(image, Media::C62)?;
+    /// let job = PrintJobBuilder::new(Media::C62)
+    ///     .add_label(image)
+    ///     .build()?;
     ///
     /// connection.print(job)?;
     /// # Ok(())

@@ -35,7 +35,7 @@
 //!     connection::{PrinterConnection, UsbConnection, UsbConnectionInfo},
 //!     media::Media,
 //!     printer::PrinterModel,
-//!     printjob::PrintJob,
+//!     printjob::PrintJobBuilder,
 //! };
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -45,7 +45,9 @@
 //!
 //! // Create and print a label
 //! let img = image::open("label.png")?;
-//! let job = PrintJob::from_image(img, Media::C62)?;
+//! let job = PrintJobBuilder::new(Media::C62)
+//!     .add_label(img)
+//!     .build()?;
 //! connection.print(job)?;
 //! # Ok(())
 //! # }
@@ -57,13 +59,15 @@
 //! use brother_ql::{
 //!     connection::{KernelConnection, PrinterConnection},
 //!     media::Media,
-//!     printjob::PrintJob,
+//!     printjob::PrintJobBuilder,
 //! };
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let mut connection = KernelConnection::open("/dev/usb/lp0")?;
 //! let img = image::open("label.png")?;
-//! let job = PrintJob::from_image(img, Media::C62)?;
+//! let job = PrintJobBuilder::new(Media::C62)
+//!     .add_label(img)
+//!     .build()?;
 //! connection.print(job)?;
 //! # Ok(())
 //! # }
@@ -72,12 +76,14 @@
 //! ## Compile to File (no features required)
 //!
 //! ```no_run
-//! use brother_ql::{media::Media, printjob::PrintJob};
+//! use brother_ql::{media::Media, printjob::PrintJobBuilder};
 //! use std::{fs::File, io::Write};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let img = image::open("label.png")?;
-//! let job = PrintJob::from_image(img, Media::C62)?;
+//! let job = PrintJobBuilder::new(Media::C62)
+//!     .add_label(img)
+//!     .build()?;
 //!
 //! // Compile to binary data
 //! let data = job.compile();

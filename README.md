@@ -17,10 +17,12 @@ A Rust library to convert images to Brother QL raster command data and print lab
 
 **Quick example:**
 ```rust
-use brother_ql::{connection::*, media::Media, printjob::PrintJob};
+use brother_ql::{connection::*, media::Media, printjob::PrintJobBuilder};
 
 let mut conn = UsbConnection::open(UsbConnectionInfo::discover()?.unwrap())?;
-let job = PrintJob::from_image(image::open("label.png")?, Media::C62)?;
+let job = PrintJobBuilder::new(Media::C62)
+    .add_label(image::open("label.png")?)
+    .build()?;
 conn.print(job)?;
 ```
 

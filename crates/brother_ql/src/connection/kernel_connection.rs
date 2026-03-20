@@ -30,12 +30,14 @@
 //! # use brother_ql::{
 //! #     connection::{KernelConnection, PrinterConnection},
 //! #     media::Media,
-//! #     printjob::PrintJob,
+//! #     printjob::PrintJobBuilder,
 //! # };
 //! # fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let mut connection = KernelConnection::open("/dev/usb/lp0")?;
 //! let img = image::open("label.png")?;
-//! let job = PrintJob::from_image(img, Media::C62)?;
+//! let job = PrintJobBuilder::new(Media::C62)
+//!     .add_label(img)
+//!     .build()?;
 //! connection.print(job)?;
 //! # Ok(())
 //! # }
