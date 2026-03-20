@@ -20,7 +20,7 @@ use crate::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum CutBehavior {
     /// Don't cut at all (manual cutting required)
-    None,
+    NoCut,
     /// Cut after each page
     CutEach,
     /// Cut after every `n` pages
@@ -143,7 +143,7 @@ impl PrintJob {
                     first_page: page_no == 0,
                 });
                 page_commands.add(RC::VariousMode(VariousModeSettings {
-                    auto_cut: self.cut_behavior != CutBehavior::None,
+                    auto_cut: self.cut_behavior != CutBehavior::NoCut,
                 }));
                 match self.cut_behavior {
                     CutBehavior::CutEvery(n) => {
@@ -292,14 +292,14 @@ mod tests {
             .copies(NonZeroU8::new(3).unwrap())
             .high_dpi(true)
             .quality_priority(false)
-            .cut_behavior(CutBehavior::None)
+            .cut_behavior(CutBehavior::NoCut)
             .build()
             .unwrap();
 
         assert_eq!(job.no_copies.get(), 3);
         assert!(job.high_dpi);
         assert!(!job.quality_priority);
-        assert_eq!(job.cut_behavior, CutBehavior::None);
+        assert_eq!(job.cut_behavior, CutBehavior::NoCut);
     }
 
     #[test]
