@@ -14,19 +14,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map_fmt_fields(MakeExt::debug_alt)
         .with_env_filter(EnvFilter::new("debug"))
         .init();
-    // Use the most likely device path but allow others
+
+    // Accept an image path as a CLI argument
     let mut args = env::args();
     let prog = args.next().unwrap();
     let Some(img_path) = args.next() else {
         println!("Usage: {prog} <image> [device]");
         return Ok(());
     };
+    // Default to the most likely printer device path
     let device_path = args.next().unwrap_or_else(|| "/dev/usb/lp0".into());
-    // Open kernel connection
-    let mut connection = KernelConnection::open(device_path)?;
-    // Read status from printer
-    let _status = connection.get_status()?;
-    // Create a print job with more than one page
+
+    // Create a print job
     let img = image::open(img_path)?;
     let job = PrintJobBuilder::new(Media::C62)
         .add_label(img)
@@ -37,7 +36,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         // .quality_priority(true)
         // .cut_behavior(CutBehavior::CutEach) // default for continuous media like C62
         .build()?;
-    // Finally, print
+
+    // Open a kernel connection and print
+    let mut connection = KernelConnection::open(device_path)?;
     connection.print(job)?;
+
     Ok(())
 }

@@ -14,10 +14,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .with_env_filter(EnvFilter::new("debug"))
         .init();
 
-    // Generate test labels for all media types
+    // Generate test labels for all media types and store them for inspection
     for media in Media::iter() {
         let img = render_test_label(media)?;
         img.save(format!("assets/{media}.png"))?;
     }
+
     Ok(())
 }

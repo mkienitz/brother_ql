@@ -17,12 +17,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map_fmt_fields(MakeExt::debug_alt)
         .with_env_filter(EnvFilter::new("debug"))
         .init();
-    // Create connection info for whatever printer is connected
-    let info = UsbConnectionInfo::discover()?.expect("No supported printer found");
-    // Open USB connection
-    let mut connection = UsbConnection::open(info)?;
-    // Use a test label for demo purposes (generated using typst)
+
+    // Create a test label for demo purposes (generated using typst)
     let img = test_labels::render_test_label(Media::C62)?;
+
     // Create a print job with more than one page
     let job = PrintJobBuilder::new(Media::C62)
         .add_label(img)
@@ -33,7 +31,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         // .quality_priority(true)
         // .cut_behavior(CutBehavior::CutEach) // default for continuous media like C62
         .build()?;
-    // Finally, print
+
+    // Create connection info for whatever printer is connected
+    let info = UsbConnectionInfo::discover()?.expect("No supported printer found");
+    // Open USB connection and print
+    let mut connection = UsbConnection::open(info)?;
     connection.print(job)?;
+
     Ok(())
 }
