@@ -79,7 +79,6 @@ struct PrintOptions {
     #[arg(
         short,
         long,
-        group = "options",
         value_name = "COUNT",
         help = "Number of copies to print",
         default_value_t = NonZeroU8::MIN
@@ -88,7 +87,6 @@ struct PrintOptions {
 
     #[arg(
             long,
-            group = "options",
             help = "Prioritize quality over speed",
             default_value = "true",
             default_missing_value = "true",
@@ -110,7 +108,6 @@ struct PrintOptions {
 
     #[arg(
             long,
-            group = "options",
             help = "Use double the resolution along the feeding direction.\nNOTE: this requires supplying an adjusted image.",
             conflicts_with = "use_test_image",
             default_value = "false",
@@ -122,7 +119,6 @@ struct PrintOptions {
 
     #[arg(
             long,
-            group = "options",
             help = "Use print data compression (currently has no effect)",
             default_value = "false",
             default_missing_value = "false",
