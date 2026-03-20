@@ -105,6 +105,7 @@
 //!
 //! ```no_run
 //! # use brother_ql::{media::Media, printjob::{PrintJobBuilder, CutBehavior}};
+//! # use std::num::NonZeroU8;
 //! # fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! # let img1 = image::open("label1.png")?;
 //! # let img2 = image::open("label2.png")?;
@@ -114,7 +115,7 @@
 //!     .copies(5)                          // Print 5 copies of each
 //!     .high_dpi(false)                    // 300 DPI (default)
 //!     .quality_priority(true)             // Quality over speed (default)
-//!     .cut_behavior(CutBehavior::CutEvery(2))  // Cut every 2 labels
+//!     .cut_behavior(CutBehavior::CutEvery(NonZeroU8::new(2).unwrap()))  // Cut every 2 labels
 //!     .build()?;
 //! # Ok(())
 //! # }

@@ -1,5 +1,7 @@
 //! The core module for defining and compiling print data
 
+use std::num::NonZeroU8;
+
 use image::DynamicImage;
 
 use crate::{
@@ -25,7 +27,7 @@ pub enum CutBehavior {
     ///
     /// If the total page count is not divisible by `n`,
     /// an additional cut will be added at the end.
-    CutEvery(u8),
+    CutEvery(NonZeroU8),
     /// Cut only after the last page
     CutAtEnd,
 }
@@ -119,7 +121,7 @@ impl PrintJob {
         let mut page_data = Vec::new();
 
         for copy_no in 0..self.no_copies {
-            for (img_idx, raster_image) in self.raster_images.clone().into_iter().enumerate() {
+            for (img_idx, raster_image) in self.raster_images.iter().enumerate() {
                 use RasterCommand as RC;
                 let page_no = copy_no as usize * self.raster_images.len() + img_idx;
 
@@ -131,7 +133,7 @@ impl PrintJob {
                 page_commands.add(RC::SwitchAutomaticStatusNotificationMode { notify: true });
                 page_commands.add(RC::PrintInformation {
                     media: self.media,
-                    quality_priority: match raster_image {
+                    quality_priority: match *raster_image {
                         RasterImage::Monochrome { .. } => self.quality_priority,
                         RasterImage::TwoColor { .. } => false,
                     },
@@ -145,7 +147,7 @@ impl PrintJob {
                 }));
                 match self.cut_behavior {
                     CutBehavior::CutEvery(n) => {
-                        page_commands.add(RC::SpecifyPageNumber { cut_every: n });
+                        page_commands.add(RC::SpecifyPageNumber { cut_every: n.get() });
                     }
                     CutBehavior::CutEach => {
                         page_commands.add(RC::SpecifyPageNumber { cut_every: 1 });
@@ -156,7 +158,7 @@ impl PrintJob {
                     two_color: self.media.supports_color(),
                     cut_at_end: match self.cut_behavior {
                         CutBehavior::CutAtEnd => true,
-                        CutBehavior::CutEvery(n) => !self.no_copies.is_multiple_of(n),
+                        CutBehavior::CutEvery(n) => !self.no_copies.is_multiple_of(n.get()),
                         _ => false,
                     },
                     high_dpi: self.high_dpi,

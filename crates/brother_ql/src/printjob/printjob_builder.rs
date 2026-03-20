@@ -24,7 +24,8 @@ pub struct NoImages {}
 ///
 /// # Example
 /// ```no_run
-/// # use brother_ql::{media::Media, printjob::PrintJobBuilder};
+/// # use brother_ql::{media::Media, printjob::{PrintJobBuilder, CutBehavior}};
+/// # use std::num::NonZeroU8;
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// let img1 = image::open("label1.png")?;
 /// let img2 = image::open("label2.png")?;
@@ -33,7 +34,7 @@ pub struct NoImages {}
 ///     .add_label(img1)  // Transitions to HasImages state
 ///     .add_label(img2)  // Can add more images
 ///     .high_dpi(false)
-///     .cut_behavior(brother_ql::printjob::CutBehavior::CutEvery(2))
+///     .cut_behavior(CutBehavior::CutEvery(NonZeroU8::new(2).unwrap()))
 ///     .build()?;        // Only available in HasImages state
 /// # Ok(())
 /// # }
