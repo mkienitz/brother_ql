@@ -1,3 +1,4 @@
+use std::num::NonZeroU8;
 use std::path::PathBuf;
 
 use anyhow::{Result, anyhow};
@@ -81,9 +82,9 @@ struct PrintOptions {
         group = "options",
         value_name = "COUNT",
         help = "Number of copies to print",
-        default_value_t = 1
+        default_value_t = NonZeroU8::MIN
     )]
-    copies: u8,
+    copies: NonZeroU8,
 
     #[arg(
             long,
@@ -271,7 +272,7 @@ fn main() -> Result<()> {
             // Get printer connection and status
             let mut conn = create_connection(printer)?;
             let status = conn.get_status()?;
-            println!("{:#?}", status);
+            print!("{status}");
         }
     }
     Ok(())
