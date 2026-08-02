@@ -22,9 +22,11 @@ strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.17"
 time = { version = "0.3.44", optional = true }
 tracing = "0.1.41"
-typst = { version = "0.14.1", optional = true }
-typst-kit = { version = "0.14.1", optional = true, features = ["embed-fonts"] }
-typst-render = { version = "0.14.1", optional = true }
+typst = { version = "0.15.1", optional = true }
+typst-kit = { version = "0.15.1", optional = true, features = [
+  "embedded-fonts",
+] }
+typst-render = { version = "0.15.1", optional = true }
 
 [features]
 serde = ["dep:serde"]
