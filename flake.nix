@@ -62,7 +62,7 @@
               pkgs.rust-analyzer
               pkgs.cargo-watch
               pkgs.cargo-modules
-              pkgs.cargo-release
+              pkgs.cargo-edit
               pkgs.git-cliff
               pkgs.bacon
               pkgs.typst

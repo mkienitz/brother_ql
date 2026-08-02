@@ -1,5 +1,0 @@
-allow-branch = ["main"]
-tag-message = "chore: release {{crate_name}} version {{version}}"
-pre-release-hook = ["bash", "../../scripts/update-changelog.sh"]
-publish = false
-push = false
