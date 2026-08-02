@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.2] - 2026-08-02
+
+### Documentation
+- Remove hint for future network connection type (see #15) ([2928829](https://github.com/mkienitz/brother_ql/commit/2928829fa1982e27b1c94e3ea04c54ccf90fd6ab))
+
+
+### Miscellaneous
+- Update deps ([e4fabda](https://github.com/mkienitz/brother_ql/commit/e4fabdac6c3bf0f28d60ac943e1fafb7cb117fed))
+
 ## [3.0.1] - 2026-05-03
 
 ### Miscellaneous
