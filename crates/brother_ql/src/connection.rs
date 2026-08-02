@@ -23,10 +23,6 @@
 //! - You're on Linux and want minimal dependencies
 //! - The kernel USB printer driver (`usblp`) is already loaded
 //! - You want to avoid external USB library dependencies
-//!
-//! # Future
-//!
-//! Network connection support is planned for future releases.
 
 mod kernel_connection;
 mod printer_connection;

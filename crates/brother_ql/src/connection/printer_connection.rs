@@ -152,10 +152,10 @@ pub(super) mod sealed {
     }
 }
 
-/// Common interface for all printer connections (USB, Network, etc.)
+/// Common interface for all printer connections (USB, Kernel Device, etc.)
 ///
 /// This trait provides a unified interface for sending print jobs to Brother QL printers,
-/// regardless of the underlying connection type (USB, network, etc.).
+/// regardless of the underlying connection type.
 ///
 /// # Available Methods
 ///
