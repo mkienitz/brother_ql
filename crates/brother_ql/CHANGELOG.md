@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.3] - 2026-08-03
+
+### Bug Fixes
+- Adjust test label module to typst 0.15 API changes ([ac6859f](https://github.com/mkienitz/brother_ql/commit/ac6859fc30ba6822adabf76c41c461ca9c134faf))
+
 ## [3.0.2] - 2026-08-02
 
 ### Documentation
