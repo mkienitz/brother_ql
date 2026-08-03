@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-08-03
+
+### Features
+- Implement network printing functionality + required refactor ([aef1c00](https://github.com/mkienitz/brother_ql/commit/aef1c00cb1a3e8ed0558919dd592d7093b828a7c))
+
 ## [0.2.0] - 2026-03-20
 
 ### Bug Fixes
