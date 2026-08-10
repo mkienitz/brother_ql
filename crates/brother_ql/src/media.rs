@@ -86,6 +86,7 @@ macro_rules! define_media {
                 width_mm: $width_mm:literal,
                 width_dots: $width_dots:literal,
                 left_margin: $left_margin:literal,
+                feed_margin: $feed_margin:literal,
                 supports_color: $supports_color:literal,
                 $( length_mm: $length_mm:literal, length_dots: $length_dots:literal, )?
             }
@@ -129,6 +130,10 @@ macro_rules! define_media {
             /// Returns the left margin in dots
             pub(crate) const fn left_margin(self) -> u32 {
                 match self { $( Media::$name => $left_margin ),+ }
+            }
+            /// Feed margin sent via `SpecifyMarginAmount` before raster data.
+            pub const fn feed_margin(self) -> u16 {
+                match self { $( Media::$name => $feed_margin ),+ }
             }
             /// Returns whether this media supports red/black two-color printing
             pub const fn supports_color(self) -> bool {
@@ -243,6 +248,7 @@ define_media! {
         width_mm: 12,
         width_dots: 106,
         left_margin: 585,
+        feed_margin: 35,
         supports_color: false,
     },
     C29 {
@@ -251,6 +257,7 @@ define_media! {
         width_mm: 29,
         width_dots: 306,
         left_margin: 408,
+        feed_margin: 35,
         supports_color: false,
     },
     C38 {
@@ -259,6 +266,7 @@ define_media! {
         width_mm: 38,
         width_dots: 413,
         left_margin: 295,
+        feed_margin: 35,
         supports_color: false,
     },
     C50 {
@@ -267,6 +275,7 @@ define_media! {
         width_mm: 50,
         width_dots: 554,
         left_margin: 154,
+        feed_margin: 35,
         supports_color: false,
     },
     C54 {
@@ -275,6 +284,7 @@ define_media! {
         width_mm: 54,
         width_dots: 590,
         left_margin: 130,
+        feed_margin: 35,
         supports_color: false,
     },
     C62 {
@@ -283,6 +293,7 @@ define_media! {
         width_mm: 62,
         width_dots: 696,
         left_margin: 12,
+        feed_margin: 35,
         supports_color: false,
     },
     C62R {
@@ -291,6 +302,7 @@ define_media! {
         width_mm: 62,
         width_dots: 696,
         left_margin: 12,
+        feed_margin: 35,
         supports_color: true,
     },
     D17x54 {
@@ -299,6 +311,7 @@ define_media! {
         width_mm: 17,
         width_dots: 165,
         left_margin: 555,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 54,
         length_dots: 566,
@@ -309,6 +322,7 @@ define_media! {
         width_mm: 17,
         width_dots: 165,
         left_margin: 555,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 87,
         length_dots: 912,
@@ -319,6 +333,7 @@ define_media! {
         width_mm: 23,
         width_dots: 236,
         left_margin: 442,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 23,
         length_dots: 236,
@@ -329,6 +344,7 @@ define_media! {
         width_mm: 29,
         width_dots: 306,
         left_margin: 408,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 42,
         length_dots: 442,
@@ -339,6 +355,7 @@ define_media! {
         width_mm: 29,
         width_dots: 306,
         left_margin: 408,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 90,
         length_dots: 944,
@@ -349,6 +366,7 @@ define_media! {
         width_mm: 38,
         width_dots: 413,
         left_margin: 295,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 90,
         length_dots: 944,
@@ -359,6 +377,7 @@ define_media! {
         width_mm: 39,
         width_dots: 425,
         left_margin: 289,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 48,
         length_dots: 512,
@@ -369,6 +388,7 @@ define_media! {
         width_mm: 52,
         width_dots: 578,
         left_margin: 142,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 29,
         length_dots: 318,
@@ -379,6 +399,7 @@ define_media! {
         width_mm: 54,
         width_dots: 602,
         left_margin: 59,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 29,
         length_dots: 318,
@@ -389,6 +410,7 @@ define_media! {
         width_mm: 60,
         width_dots: 672,
         left_margin: 24,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 86,
         length_dots: 902,
@@ -399,6 +421,7 @@ define_media! {
         width_mm: 62,
         width_dots: 696,
         left_margin: 12,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 29,
         length_dots: 318,
@@ -409,6 +432,7 @@ define_media! {
         width_mm: 62,
         width_dots: 696,
         left_margin: 12,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 100,
         length_dots: 1104,
@@ -419,6 +443,7 @@ define_media! {
         width_mm: 12,
         width_dots: 94,
         left_margin: 513,
+        feed_margin: 35,
         supports_color: false,
         length_mm: 12,
         length_dots: 94,
@@ -429,6 +454,7 @@ define_media! {
         width_mm: 24,
         width_dots: 236,
         left_margin: 442,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 24,
         length_dots: 236,
@@ -439,6 +465,7 @@ define_media! {
         width_mm: 58,
         width_dots: 618,
         left_margin: 51,
+        feed_margin: 0,
         supports_color: false,
         length_mm: 58,
         length_dots: 630,

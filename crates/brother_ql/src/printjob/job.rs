@@ -6,7 +6,7 @@ use crate::{
     commands::{
         ColorPower, DynamicCommandMode, RasterCommand, RasterCommands, VariousModeSettings,
     },
-    media::{LabelType, Media},
+    media::Media,
     raster_image::RasterImage,
 };
 
@@ -121,10 +121,7 @@ impl PrintJob {
                     high_dpi: self.high_dpi,
                 });
                 page_commands.add(RC::SpecifyMarginAmount {
-                    margin_size: match self.media.label_type() {
-                        LabelType::Continuous => 35,
-                        LabelType::DieCut => 0,
-                    },
+                    margin_size: self.media.feed_margin(),
                 });
                 page_commands.add(RC::SelectCompressionMode {
                     // TODO: Add support for compression
