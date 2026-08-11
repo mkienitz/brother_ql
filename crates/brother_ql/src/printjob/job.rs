@@ -123,6 +123,11 @@ impl PrintJob {
                 page_commands.add(RC::SpecifyMarginAmount {
                     margin_size: match self.media.label_type() {
                         LabelType::Continuous => 35,
+                        // NOTE:
+                        // According to the official raster command reference, the margin amount for die-cut labels is to be set to 0.
+                        // However, there appears to be an no longer documented exception in the case of 12mm die-cut circular labels.
+                        // As observed in PR #16 (using a QL800 printer) such labels requires a margin size of 35.
+                        LabelType::DieCut if self.media == Media::D12 => 35,
                         LabelType::DieCut => 0,
                     },
                 });
