@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2026-08-11
+
+### Miscellaneous
+- Update `brother_ql` to 3.0.4, fixing print alignment for 12 mm round die-cut labels
+
 ## [0.3.0] - 2026-08-03
 
 ### Features
