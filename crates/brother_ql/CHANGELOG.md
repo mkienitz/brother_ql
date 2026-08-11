@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.4] - 2026-08-11
+
+### Bug Fixes
+- Use 35-dot feed margin for 12mm round die-cut labels (fixes #16) ([b767fd7](https://github.com/mkienitz/brother_ql/commit/b767fd7af86349b4e8ea549a0332b34140d742f9))
+
 ## [3.0.3] - 2026-08-03
 
 ### Bug Fixes
