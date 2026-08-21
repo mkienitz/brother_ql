@@ -401,7 +401,7 @@ define_media! {
         left_margin: 12,
         supports_color: false,
         length_mm: 29,
-        length_dots: 318,
+        length_dots: 271,
     },
     D62x100 {
         products: ["DK-11202 Shipping Labels"],
