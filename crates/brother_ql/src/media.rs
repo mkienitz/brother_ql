@@ -311,7 +311,7 @@ define_media! {
         left_margin: 555,
         supports_color: false,
         length_mm: 87,
-        length_dots: 912,
+        length_dots: 956,
     },
     D23x23 {
         products: ["DK-11221 Square Labels"],
@@ -321,7 +321,7 @@ define_media! {
         left_margin: 442,
         supports_color: false,
         length_mm: 23,
-        length_dots: 236,
+        length_dots: 202,
     },
     D29x42 {
         products: ["DK-11215 Labels (⚠️ no official data)"],
@@ -341,7 +341,7 @@ define_media! {
         left_margin: 408,
         supports_color: false,
         length_mm: 90,
-        length_dots: 944,
+        length_dots: 991,
     },
     D38x90 {
         products: ["DK-11208 Large Address Labels"],
@@ -351,7 +351,7 @@ define_media! {
         left_margin: 295,
         supports_color: false,
         length_mm: 90,
-        length_dots: 944,
+        length_dots: 991,
     },
     D39x48 {
         products: ["DK-11220 Labels (⚠️ no official data)"],
@@ -361,7 +361,7 @@ define_media! {
         left_margin: 289,
         supports_color: false,
         length_mm: 48,
-        length_dots: 512,
+        length_dots: 495,
     },
     D52x29 {
         products: ["DK-11226 Labels (⚠️ no official data)"],
@@ -371,7 +371,7 @@ define_media! {
         left_margin: 142,
         supports_color: false,
         length_mm: 29,
-        length_dots: 318,
+        length_dots: 271,
     },
     D54x29 {
         products: ["DK-3235 Removable"],
@@ -381,7 +381,7 @@ define_media! {
         left_margin: 59,
         supports_color: false,
         length_mm: 29,
-        length_dots: 318,
+        length_dots: 271,
     },
     D60x86 {
         products: ["DK-11234 Name Badge Labels"],
@@ -391,7 +391,7 @@ define_media! {
         left_margin: 24,
         supports_color: false,
         length_mm: 86,
-        length_dots: 902,
+        length_dots: 954,
     },
     D62x29 {
         products: ["DK-11209 Small Address Labels"],
@@ -411,7 +411,7 @@ define_media! {
         left_margin: 12,
         supports_color: false,
         length_mm: 100,
-        length_dots: 1104,
+        length_dots: 1109,
     },
     D12 {
         products: ["DK-11219 Round Labels"],
@@ -441,6 +441,6 @@ define_media! {
         left_margin: 51,
         supports_color: false,
         length_mm: 58,
-        length_dots: 630,
+        length_dots: 618,
     },
 }
