@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.5] - 2026-08-24
+
+### Bug Fixes
+- Correct various die-cut printable dot lengths (#18) ([b5cbbc6](https://github.com/mkienitz/brother_ql/commit/b5cbbc6cebddd873b00e51935add45fd3cdf48d6))
+
+
+### Miscellaneous
+- Upgrade dependencies ([32c9826](https://github.com/mkienitz/brother_ql/commit/32c98265739f93370d67d1a73ddc90dde2e38bd1))
+
 ## [3.0.4] - 2026-08-11
 
 ### Bug Fixes
