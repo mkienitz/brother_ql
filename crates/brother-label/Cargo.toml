@@ -8,15 +8,15 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-anyhow = "1.0.100"
+anyhow = "1.0.104"
 brother_ql = { version = "3.0.4", path = "../brother_ql", features = [
   "clap",
   "usb",
   "test-labels",
 ] }
-clap = { version = "4.5.53", features = ["derive"] }
-image = "0.25.9"
-tracing-subscriber = { version = "0.3.22", features = [
+clap = { version = "4.6.6", features = ["derive"] }
+image = "0.25.10"
+tracing-subscriber = { version = "0.3.23", features = [
   "tracing",
   "env-filter",
 ] }

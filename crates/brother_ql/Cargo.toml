@@ -8,19 +8,19 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-bitflags = "2.10.0"
-clap = { version = "4.5.53", optional = true, default-features = false, features = [
+bitflags = "2.13.1"
+clap = { version = "4.6.6", optional = true, default-features = false, features = [
   "derive",
   "std",
 ] }
 custom_debug = "0.6.2"
-image = "0.25.2"
-nix = { version = "0.31.2", features = ["poll"] }
+image = "0.25.10"
+nix = { version = "0.31.3", features = ["poll"] }
 rusb = { version = "0.9", optional = true }
-serde = { version = "1.0.210", features = ["derive"], optional = true }
+serde = { version = "1.0.229", features = ["derive"], optional = true }
 strum = { version = "0.28.0", features = ["derive"] }
-thiserror = "2.0.17"
-tracing = "0.1.41"
+thiserror = "2.0.20"
+tracing = "0.1.44"
 typst = { version = "0.15.1", optional = true }
 typst-kit = { version = "0.15.1", optional = true, features = [
   "datetime",
@@ -41,7 +41,7 @@ test-labels = [
 clap = ["dep:clap"]
 
 [dev-dependencies]
-tracing-subscriber = { version = "0.3.20", features = [
+tracing-subscriber = { version = "0.3.23", features = [
   "tracing",
   "env-filter",
 ] }
