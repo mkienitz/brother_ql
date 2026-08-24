@@ -331,7 +331,7 @@ define_media! {
         left_margin: 408,
         supports_color: false,
         length_mm: 42,
-        length_dots: 442,
+        length_dots: 425,
     },
     D29x90 {
         products: ["DK-11201 Standard Address Labels"],
