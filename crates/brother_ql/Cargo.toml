@@ -8,8 +8,8 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-bitflags = "2.13.1"
-clap = { version = "4.6.6", optional = true, default-features = false, features = [
+bitflags = "2.13.2"
+clap = { version = "4.6.7", optional = true, default-features = false, features = [
   "derive",
   "std",
 ] }
@@ -19,7 +19,7 @@ nix = { version = "0.31.3", features = ["poll"] }
 rusb = { version = "0.9", optional = true }
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 strum = { version = "0.28.0", features = ["derive"] }
-thiserror = "2.0.20"
+thiserror = "2.0.21"
 tracing = "0.1.44"
 typst = { version = "0.15.1", optional = true }
 typst-kit = { version = "0.15.1", optional = true, features = [
