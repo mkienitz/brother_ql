@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.3] - 2026-11-04
+
+### Miscellaneous
+- Update dependencies ([a2b6481](https://github.com/mkienitz/brother_ql/commit/a2b64813e2e1b9d2e3165f7b1aaea4dfa9e64adf))
+
 ## [0.3.2] - 2026-08-24
 
 ### Miscellaneous
