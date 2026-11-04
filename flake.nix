@@ -10,8 +10,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     treefmt-nix = {
@@ -26,7 +26,7 @@
       imports = [
         inputs.devshell.flakeModule
         inputs.nci.flakeModule
-        inputs.pre-commit-hooks.flakeModule
+        inputs.git-hooks.flakeModule
         inputs.treefmt-nix.flakeModule
       ];
 
